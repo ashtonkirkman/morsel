@@ -1,0 +1,114 @@
+name: iOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    name: Build & test (iOS Simulator)
+    runs-on: macos-15
+    timeout-minutes: 40
+    env:
+      RESULT_BUNDLE: TestResults.xcresult
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode 16
+        run: |
+          set -euo pipefail
+          XCODE=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -n 1 || true)
+          if [ -n "$XCODE" ]; then sudo xcode-select -s "$XCODE"; fi
+          xcodebuild -version
+          swift --version
+
+      - name: Install XcodeGen
+        run: |
+          brew update >/dev/null || true
+          brew install xcodegen
+          xcodegen version
+
+      - name: Install xcpretty (optional)
+        continue-on-error: true
+        run: sudo gem install xcpretty --no-document
+
+      - name: Generate Xcode project
+        run: xcodegen generate --spec project.yml
+
+      - name: Pick newest iPhone simulator
+        id: sim
+        run: |
+          set -euo pipefail
+          UDID=$(xcrun simctl list devices available -j | python3 scripts/pick_simulator.py)
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+          xcrun simctl boot "$UDID" || true   # pre-warm; harmless if already booted
+
+      - name: Build & test
+        run: |
+          set -euo pipefail
+          DEST="platform=iOS Simulator,id=${{ steps.sim.outputs.udid }}"
+          ARGS=(-project Morsel.xcodeproj -scheme Morsel -destination "$DEST"
+                -skipPackagePluginValidation -resultBundlePath "$RESULT_BUNDLE"
+                CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO)
+          if command -v xcpretty >/dev/null 2>&1; then
+            xcodebuild "${ARGS[@]}" build test | xcpretty --color --simple
+          else
+            echo "::notice::xcpretty unavailable, printing raw xcodebuild output"
+            xcodebuild "${ARGS[@]}" build test
+          fi
+
+      - name: Upload .xcresult on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: TestResults-${{ github.run_number }}
+          path: TestResults.xcresult
+          if-no-files-found: ignore
+          retention-days: 14
+
+  swiftlint:
+    name: SwiftLint (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lint
+        run: |
+          docker run --rm -v "$PWD":/work -w /work ghcr.io/realm/swiftlint:latest \
+            swiftlint lint --strict --reporter github-actions-logging
+
+  proxy:
+    name: Proxy typecheck (server/claude-proxy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      # hashFiles() only works after checkout, so the guard lives on the steps rather than the job.
+      - name: Setup Node 20
+        if: hashFiles('server/claude-proxy/package.json') != ''
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: server/claude-proxy/package-lock.json
+      - name: npm ci + tsc --noEmit
+        if: hashFiles('server/claude-proxy/package.json') != ''
+        working-directory: server/claude-proxy
+        run: |
+          set -euo pipefail
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npx tsc --noEmit
+      - name: Skipped
+        if: hashFiles('server/claude-proxy/package.json') == ''
+        run: echo "server/claude-proxy/package.json not present yet; nothing to typecheck."

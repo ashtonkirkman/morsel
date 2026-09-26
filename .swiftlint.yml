@@ -1,0 +1,58 @@
+# Lenient SwiftLint config. CI runs this with continue-on-error, so it advises rather than gates.
+# Run locally with `make lint` (needs swiftlint or docker).
+included:
+  - Morsel
+excluded:
+  - MorselTests
+  - server
+  - build
+  - DerivedData
+  - .build
+
+disabled_rules:
+  - trailing_whitespace
+  - todo
+  - trailing_comma
+  - opening_brace          # SwiftUI trailing-closure style trips this constantly
+  - multiple_closures_with_trailing_closure
+
+opt_in_rules:
+  - empty_count
+  - closure_spacing
+  - redundant_nil_coalescing
+
+line_length:
+  warning: 140
+  error: 220
+  ignores_urls: true
+  ignores_comments: true
+  ignores_function_declarations: true
+
+type_body_length:
+  warning: 400
+  error: 700
+
+file_length:
+  warning: 600
+  error: 1200
+
+function_body_length:
+  warning: 80
+  error: 150
+
+identifier_name:
+  min_length: 1           # allow `x`, `y`, `id`, `kcal`
+  max_length: 50
+  excluded: [id, x, y, dx, dy, r, g, b, a]
+
+nesting:
+  type_level: 3
+
+cyclomatic_complexity:
+  warning: 15
+  error: 30
+
+large_tuple:
+  warning: 3
+
+reporter: xcode

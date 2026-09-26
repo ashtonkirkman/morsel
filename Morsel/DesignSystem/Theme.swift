@@ -75,7 +75,10 @@ enum Format {
     }
     static func quantity(_ value: Double) -> String {
         if value == value.rounded() { return "\(Int(value))" }
-        return String(format: "%.2g", value)
+        var text = String(format: "%.2f", value)
+        while text.hasSuffix("0") { text.removeLast() }
+        if text.hasSuffix(".") { text.removeLast() }
+        return text
     }
     static func percent(_ fraction: Double) -> String { "\(Int((fraction * 100).rounded()))%" }
 }

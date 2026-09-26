@@ -1,0 +1,11 @@
+# fastlane Appfile -- nothing here works until the Apple Developer Program membership exists.
+# See fastlane/README.md.
+app_identifier("com.ashtonkirkman.morsel")
+
+# Fill these in (or export them) once the account is live:
+#   apple_id("you@example.com")        # Apple ID used for App Store Connect
+#   team_id("XXXXXXXXXX")              # Developer Portal team ID (also DEVELOPMENT_TEAM in project.yml)
+#   itc_team_id("123456789")           # App Store Connect team ID, only if you belong to several
+apple_id(ENV["FASTLANE_APPLE_ID"]) if ENV["FASTLANE_APPLE_ID"]
+team_id(ENV["FASTLANE_TEAM_ID"]) if ENV["FASTLANE_TEAM_ID"]
+itc_team_id(ENV["FASTLANE_ITC_TEAM_ID"]) if ENV["FASTLANE_ITC_TEAM_ID"]
