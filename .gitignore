@@ -1,0 +1,21 @@
+# Xcode
+*.xcodeproj
+*.xcworkspace
+!*.xcodeproj/project.pbxproj
+xcuserdata/
+DerivedData/
+build/
+*.ipa
+*.dSYM.zip
+*.xcresult
+.swiftpm/
+Packages/
+*.hmap
+# secrets
+*.env
+.env.*
+server/**/.dev.vars
+server/**/node_modules/
+server/**/dist/
+# macOS
+.DS_Store
