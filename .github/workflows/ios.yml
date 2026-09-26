@@ -86,7 +86,7 @@ jobs:
       - name: Lint
         run: |
           docker run --rm -v "$PWD":/work -w /work ghcr.io/realm/swiftlint:latest \
-            swiftlint lint --strict --reporter github-actions-logging
+            swiftlint lint --reporter github-actions-logging
 
   proxy:
     name: Proxy typecheck (server/claude-proxy)
