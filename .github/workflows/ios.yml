@@ -80,10 +80,10 @@ jobs:
     name: SwiftLint (advisory)
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Lint
+        continue-on-error: true
         run: |
           docker run --rm -v "$PWD":/work -w /work ghcr.io/realm/swiftlint:latest \
             swiftlint lint --reporter github-actions-logging
