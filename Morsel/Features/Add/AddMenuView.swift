@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// The four ways to log. Photo first, since it is the lowest-effort path.
+@MainActor
 struct AddMenuView: View {
     let onChoose: (AddRoute) -> Void
     let onCancel: () -> Void

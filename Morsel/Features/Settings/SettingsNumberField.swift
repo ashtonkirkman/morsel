@@ -59,7 +59,7 @@ struct SettingsNumberField: View {
 
 extension View {
     /// Adds a "Done" button above numeric keyboards (which have no return key).
-    func keyboardDoneToolbar() -> some View {
+    @MainActor func keyboardDoneToolbar() -> some View {
         toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()

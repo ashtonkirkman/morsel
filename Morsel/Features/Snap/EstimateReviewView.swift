@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Phase 3: photo, summary, confidence, totals, editable items, clarifying question, meal chips, one Log button.
+@MainActor
 struct EstimateReviewView: View {
     @Bindable var model: SnapMealViewModel
     let onLog: () -> Void

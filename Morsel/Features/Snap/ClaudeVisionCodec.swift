@@ -194,7 +194,7 @@ enum ClaudeVisionCodec {
     // MARK: - Previous estimate → JSON (same shape the model must output)
 
     static func estimateJSONObject(_ estimate: MealEstimate) -> [String: Any] {
-        let items: [[String: Any]] = estimate.items.map { item in
+        let items: [[String: Any]] = estimate.items.map { item -> [String: Any] in
             let n = item.food.nutritionPerServing
             return [
                 "name": item.food.name,

@@ -3,6 +3,7 @@ import SwiftUI
 
 /// Phase 1: full-screen camera with shutter, library picker, optional hint, and Cancel.
 /// Falls back to a library-first layout when there is no usable camera (Simulator, no permission).
+@MainActor
 struct CaptureView: View {
     @Binding var hint: String
     let isConfigured: Bool

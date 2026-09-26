@@ -3,7 +3,11 @@ import Security
 
 /// Minimal Keychain wrapper for secrets (Claude API key). Generic-password class, this app only.
 struct KeychainStore: Sendable {
-    enum Key: String { case claudeAPIKey = "com.ashtonkirkman.morsel.claudeAPIKey" }
+    enum Key: String {
+        case claudeAPIKey = "com.ashtonkirkman.morsel.claudeAPIKey"
+        /// Optional shared secret the Cloudflare proxy checks (`x-morsel-token`).
+        case proxyToken = "com.ashtonkirkman.morsel.proxyToken"
+    }
 
     static let shared = KeychainStore()
 

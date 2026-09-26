@@ -2,6 +2,7 @@ import SwiftUI
 import SwiftData
 
 /// Tab shell + floating add button + "Logged" toast. Shows onboarding on first launch.
+@MainActor
 struct RootView: View {
     @Environment(AppSettings.self) private var settings
     @State private var tab: Tab = .today
@@ -71,6 +72,7 @@ enum AddRoute: String, Identifiable {
 
 /// Hosts the add menu and each logging flow inside one sheet. Every flow calls `onLogged`
 /// with the entries it inserted (empty array = cancelled).
+@MainActor
 struct AddFlowHost: View {
     let route: AddRoute
     let onLogged: ([LogEntry]) -> Void
@@ -107,6 +109,7 @@ struct LoggedToast: Equatable {
     var calories: Double
 }
 
+@MainActor
 struct LoggedToastView: View {
     @Environment(\.modelContext) private var context
     let toast: LoggedToast

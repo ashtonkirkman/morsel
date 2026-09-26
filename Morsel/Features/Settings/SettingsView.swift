@@ -13,6 +13,8 @@ struct SettingsView: View {
 
     // Photo logging
     @State private var apiKeyDraft = ""
+    @State private var proxyTokenDraft = ""
+    @State private var proxyTokenStored = false
     @State private var keyStored = false
     @State private var visionConfigured = false
 
@@ -141,6 +143,8 @@ struct SettingsView: View {
                     .font(MorselFont.body)
                     .padding(.vertical, 6)
                     .accessibilityLabel("Proxy URL")
+                SettingsSeparator()
+                proxyTokenRow
             case .direct:
                 apiKeyRow
             }
@@ -177,6 +181,26 @@ struct SettingsView: View {
                     .foregroundStyle(Color.mAccent)
             } else if keyStored {
                 Button("Remove", role: .destructive, action: removeAPIKey)
+                    .font(MorselFont.callout.weight(.semibold))
+            }
+        }
+        .padding(.vertical, 6)
+    }
+
+    private var proxyTokenRow: some View {
+        HStack(spacing: Spacing.s) {
+            SecureField(proxyTokenStored ? "Token saved · enter to replace" : "Proxy token (optional)", text: $proxyTokenDraft)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .font(MorselFont.body)
+                .onSubmit(saveProxyToken)
+                .accessibilityLabel("Proxy token")
+            if !proxyTokenDraft.isEmpty {
+                Button("Save", action: saveProxyToken)
+                    .font(MorselFont.callout.weight(.semibold))
+                    .foregroundStyle(Color.mAccent)
+            } else if proxyTokenStored {
+                Button("Remove", role: .destructive, action: removeProxyToken)
                     .font(MorselFont.callout.weight(.semibold))
             }
         }
@@ -293,6 +317,7 @@ struct SettingsView: View {
     private func refresh() {
         if let stored = settings.profile { profileDraft = stored }
         keyStored = !(KeychainStore.shared.read(.claudeAPIKey) ?? "").isEmpty
+        proxyTokenStored = !(KeychainStore.shared.read(.proxyToken) ?? "").isEmpty
         exportURL = nil
         refreshVisionStatus()
     }
@@ -325,6 +350,22 @@ struct SettingsView: View {
             if settings.hapticsEnabled { Haptics.success() }
         }
         refreshVisionStatus()
+    }
+
+    private func saveProxyToken() {
+        let trimmed = proxyTokenDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        if KeychainStore.shared.write(trimmed, for: .proxyToken) {
+            proxyTokenDraft = ""
+            proxyTokenStored = true
+            if settings.hapticsEnabled { Haptics.success() }
+        }
+    }
+
+    private func removeProxyToken() {
+        KeychainStore.shared.delete(.proxyToken)
+        proxyTokenDraft = ""
+        proxyTokenStored = false
     }
 
     private func removeAPIKey() {

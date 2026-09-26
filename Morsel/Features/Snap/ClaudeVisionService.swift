@@ -41,7 +41,10 @@ final class ClaudeVisionService: MealVisionService, @unchecked Sendable {
             guard !key.isEmpty else { throw ServiceError.noAPIKey }
             request.setValue(key, forHTTPHeaderField: "x-api-key")
         }
-        // Follow-up: send `x-morsel-token` here once a `.proxyToken` Keychain key + Settings field exist.
+        if settings.claudeEndpointMode == .proxy {
+            let token = (KeychainStore.shared.read(.proxyToken) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !token.isEmpty { request.setValue(token, forHTTPHeaderField: "x-morsel-token") }
+        }
 
         request.httpBody = try ClaudeVisionCodec.requestBody(imageData: imageData, hint: hint, previous: previous)
         return request

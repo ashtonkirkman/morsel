@@ -49,11 +49,11 @@ enum OpenFoodFactsMapper {
 
         let serving: (facts: NutritionFacts, description: String, grams: Double)
         if servingQuantity > 0,
-           let facts = facts(from: nutriments, suffix: "_serving", fallbackScale: servingQuantity / 100) {
+           let servingFacts = facts(from: nutriments, suffix: "_serving", fallbackScale: servingQuantity / 100) {
             let description = cleaned(product.servingSize) ?? "\(formatGrams(servingQuantity)) g"
-            serving = (facts, description, servingQuantity)
-        } else if let facts = facts(from: nutriments, suffix: "_100g", fallbackScale: nil) {
-            serving = (facts, "100 g", 100)
+            serving = (servingFacts, description, servingQuantity)
+        } else if let per100Facts = facts(from: nutriments, suffix: "_100g", fallbackScale: nil) {
+            serving = (per100Facts, "100 g", 100)
         } else {
             return nil
         }

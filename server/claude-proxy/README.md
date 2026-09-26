@@ -54,6 +54,6 @@ curl -s http://127.0.0.1:8787/v1/messages \
 
 ## Notes
 
-- The iOS app does not yet send `x-morsel-token`; adding a `.proxyToken` Keychain key and a
-  Settings field is a follow-up. Until then leave `APP_TOKEN` unset.
+- If you set `APP_TOKEN`, paste the same value into Morsel → Settings → Photo logging → “Proxy token”
+  (stored in the Keychain and sent as `x-morsel-token`).
 - Streaming requests (`"stream": true`) are passed through untouched; the app does not use them.

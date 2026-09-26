@@ -202,7 +202,7 @@ final class ScanMapperTests: XCTestCase {
 
     func testMalformedJSONThrowsDecodingError() {
         XCTAssertThrowsError(try OpenFoodFactsMapper.mapLookupResponse(data: data("not json"), barcode: "1")) { error in
-            guard case ServiceError.decoding = error else {
+            guard let serviceError = error as? ServiceError, case .decoding = serviceError else {
                 return XCTFail("Expected ServiceError.decoding, got \(error)")
             }
         }

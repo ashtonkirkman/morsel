@@ -54,9 +54,9 @@ extension ModelContext {
 
     /// Per-day calorie totals for a date range, zero-filled. Used by History charts.
     func dailyCalories(from start: Date, to end: Date, calendar: Calendar = .current) throws -> [(day: Date, calories: Double)] {
-        let entries = try entries(from: calendar.startOfDay(for: start), to: end)
+        let fetched = try entries(from: calendar.startOfDay(for: start), to: end)
         var byDay: [Date: Double] = [:]
-        for e in entries { byDay[e.day, default: 0] += e.total.calories }
+        for e in fetched { byDay[e.day, default: 0] += e.total.calories }
         var out: [(Date, Double)] = []
         var cursor = calendar.startOfDay(for: start)
         while cursor < end {
