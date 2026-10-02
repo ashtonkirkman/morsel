@@ -50,6 +50,9 @@ struct RootView: View {
         }
         .animation(.spring(duration: 0.35), value: tab)
         .animation(.spring(duration: 0.35), value: toast)
+        .onAppear {
+            if let route = LaunchOptions.initialRoute, addRoute == nil { addRoute = route }
+        }
         .sheet(item: $addRoute) { route in
             AddFlowHost(route: route) { entries in
                 addRoute = nil

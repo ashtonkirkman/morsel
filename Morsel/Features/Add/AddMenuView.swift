@@ -46,5 +46,6 @@ struct AddMenuView: View {
             .background(Color.mSurface, in: RoundedRectangle(cornerRadius: Radius.control, style: .continuous))
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier("add.\(route.rawValue)")
     }
 }

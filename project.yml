@@ -62,7 +62,27 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ashtonkirkman.morsel.tests
         GENERATE_INFOPLIST_FILE: YES
+  MorselUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [MorselUITests]
+    dependencies:
+      - target: Morsel
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ashtonkirkman.morsel.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: Morsel
 schemes:
+  # Screenshot walk-through (UI tests only). `make screenshots` / CI "Screenshots" step.
+  MorselScreenshots:
+    build:
+      targets:
+        Morsel: all
+        MorselUITests: [test]
+    test:
+      config: Debug
+      targets: [MorselUITests]
   Morsel:
     build:
       targets:

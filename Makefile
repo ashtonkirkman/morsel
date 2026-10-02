@@ -41,6 +41,13 @@ test: generate
 icon:
 	python3 scripts/make_icon.py
 
+screenshots: generate ## Walk every screen in the Simulator and write PNGs to ./screenshots
+	mkdir -p screenshots
+	TEST_RUNNER_SCREENSHOT_DIR="$$PWD/screenshots" xcodebuild -project Morsel.xcodeproj -scheme MorselScreenshots \
+		-destination "platform=iOS Simulator,id=$$(python3 scripts/pick_simulator.py)" \
+		CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO test
+	python3 scripts/contact_sheet.py screenshots screenshots/contact-sheet.png || true
+
 lint:
 	@if command -v swiftlint >/dev/null 2>&1; then \
 		swiftlint lint --reporter xcode; \
