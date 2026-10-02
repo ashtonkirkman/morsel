@@ -14,6 +14,8 @@ rest and shows you one number and one ring.
 Every push to `main` boots an iOS Simulator on GitHub Actions, walks the app in a seeded demo mode
 (`--ui-testing`), and publishes the PNGs to the [`screenshots`](https://github.com/ashtonkirkman/morsel/tree/screenshots)
 branch, so the images below are always from the latest build. No Mac involved.
+Quickest look: the [`screenshots` branch README](https://github.com/ashtonkirkman/morsel/blob/screenshots/README.md)
+shows every screen full size, including a one-image contact sheet.
 
 | Today | Add menu | Photo | History |
 |---|---|---|---|
