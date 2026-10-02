@@ -93,6 +93,43 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Build unsigned device IPA (for Sideloadly / AltStore)
+        id: ipa
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          xcodebuild -project Morsel.xcodeproj -scheme Morsel -configuration Release \
+            -destination 'generic/platform=iOS' -derivedDataPath build/device \
+            -skipPackagePluginValidation \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | xcpretty && test "${PIPESTATUS[0]}" -eq 0
+          rm -rf Payload && mkdir Payload
+          cp -R build/device/Build/Products/Release-iphoneos/Morsel.app Payload/
+          zip -qry Morsel-unsigned.ipa Payload
+          ls -la Morsel-unsigned.ipa
+
+      - name: Upload IPA artifact
+        if: steps.ipa.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: Morsel-unsigned-ipa-${{ github.run_number }}
+          path: Morsel-unsigned.ipa
+          retention-days: 90
+
+      - name: Update rolling "latest" release with the IPA
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.ipa.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          NOTES="Unsigned device build from ${GITHUB_SHA::7} ($(date -u +%F)). Sign and install with Sideloadly or AltStore; see docs/INSTALL_ON_IPHONE.md."
+          if gh release view latest >/dev/null 2>&1; then
+            gh release edit latest --prerelease --title "Morsel (latest main)" --notes "$NOTES"
+          else
+            gh release create latest --prerelease --title "Morsel (latest main)" --notes "$NOTES"
+          fi
+          gh release upload latest Morsel-unsigned.ipa --clobber
+
       - name: Publish screenshots branch
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.shots.outcome == 'success'
         run: |
