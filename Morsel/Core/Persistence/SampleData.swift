@@ -41,9 +41,11 @@ enum SampleData {
 
         let startOfToday = calendar.startOfDay(for: now)
         let hours: [MealType: Int] = [.breakfast: 8, .lunch: 12, .dinner: 19, .snack: 15]
-        for m in today {
-            let at = calendar.date(byAdding: .hour, value: hours[m.meal] ?? 12, to: startOfToday) ?? now
-            if at <= now { insert(m, at: at) }
+        // Clamp to "a moment ago" so an early-morning run (CI at 02:00) still shows a full day.
+        for (i, m) in today.enumerated() {
+            let scheduled = calendar.date(byAdding: .hour, value: hours[m.meal] ?? 12, to: startOfToday) ?? now
+            let at = min(scheduled, now.addingTimeInterval(-Double(60 * (today.count - i))))
+            insert(m, at: at)
         }
 
         for offset in 1...max(days, 1) {

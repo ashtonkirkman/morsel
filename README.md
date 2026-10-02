@@ -8,6 +8,23 @@ rest and shows you one number and one ring.
 > to `main` generates the Xcode project and runs the unit tests on an iPhone simulator. Nothing here has
 > run on a physical device.
 
+
+## Screenshots
+
+Every push to `main` boots an iOS Simulator on GitHub Actions, walks the app in a seeded demo mode
+(`--ui-testing`), and publishes the PNGs to the [`screenshots`](https://github.com/ashtonkirkman/morsel/tree/screenshots)
+branch, so the images below are always from the latest build. No Mac involved.
+
+| Today | Add menu | Photo | History |
+|---|---|---|---|
+| ![Today](https://github.com/ashtonkirkman/morsel/blob/screenshots/02-today.png?raw=true) | ![Add](https://github.com/ashtonkirkman/morsel/blob/screenshots/03-add-menu.png?raw=true) | ![Snap](https://github.com/ashtonkirkman/morsel/blob/screenshots/04-snap.png?raw=true) | ![History](https://github.com/ashtonkirkman/morsel/blob/screenshots/08-history.png?raw=true) |
+
+| Search | Quick add | Settings | Dark mode |
+|---|---|---|---|
+| ![Search](https://github.com/ashtonkirkman/morsel/blob/screenshots/06-search.png?raw=true) | ![Quick add](https://github.com/ashtonkirkman/morsel/blob/screenshots/07-quick-add.png?raw=true) | ![Settings](https://github.com/ashtonkirkman/morsel/blob/screenshots/09-settings.png?raw=true) | ![Dark](https://github.com/ashtonkirkman/morsel/blob/screenshots/10-today-dark.png?raw=true) |
+
+Locally on a Mac: `make screenshots` writes the same set to `./screenshots/`.
+
 ## Features
 
 - **Photo to calories.** Take or pick a meal photo; Claude returns the items, portions, calories and

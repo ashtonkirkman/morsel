@@ -55,6 +55,43 @@ struct SettingsNumberField: View {
     }
 }
 
+/// Narrow numeric field with a trailing unit, for several values on one row (e.g. "5 ft 6 in").
+struct CompactNumberField: View {
+    let unit: String
+    @Binding var value: Double
+    var accessibilityLabel: String = ""
+
+    @State private var text: String = ""
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        HStack(spacing: 4) {
+            TextField("", text: $text)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .font(MorselFont.body.monospacedDigit())
+                .foregroundStyle(Color.mText)
+                .frame(width: 44)
+                .focused($focused)
+                .accessibilityLabel(accessibilityLabel.isEmpty ? unit : accessibilityLabel)
+            Text(unit)
+                .font(MorselFont.callout)
+                .foregroundStyle(Color.mTextSecondary)
+                .frame(minWidth: 20, alignment: .leading)
+        }
+        .onAppear { text = "\(Int(value.rounded()))" }
+        .onChange(of: text) { _, newText in
+            if let parsed = Double(newText), parsed >= 0, parsed != value { value = parsed }
+        }
+        .onChange(of: value) { _, newValue in
+            if !focused { text = "\(Int(newValue.rounded()))" }
+        }
+        .onChange(of: focused) { _, isFocused in
+            if !isFocused { text = "\(Int(value.rounded()))" }
+        }
+    }
+}
+
 // MARK: - Keyboard dismissal
 
 extension View {

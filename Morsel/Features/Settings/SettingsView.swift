@@ -101,8 +101,9 @@ struct SettingsView: View {
                     ForEach(ActivityLevel.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.menu)
+                .fixedSize()
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, 6)
             SettingsSeparator()
             HStack {
                 Text("Goal").font(MorselFont.body).foregroundStyle(Color.mText)
@@ -111,8 +112,9 @@ struct SettingsView: View {
                     ForEach(WeightGoal.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.menu)
+                .fixedSize()
             }
-            .padding(.vertical, 2)
+            .padding(.vertical, 6)
         }
     }
 

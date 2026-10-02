@@ -32,9 +32,23 @@ struct DayLogView: View {
                 macroCard
             }
             if entries.isEmpty {
-                EmptyStateView(symbol: "fork.knife",
-                               title: "Nothing logged yet",
-                               message: "Tap + to snap, scan, or search.")
+                Card {
+                    HStack(spacing: Spacing.m) {
+                        Image(systemName: "fork.knife")
+                            .font(.title3)
+                            .foregroundStyle(Color.mTextTertiary)
+                            .frame(width: 28)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(showsHero ? "Nothing logged yet" : "Nothing logged this day")
+                                .font(MorselFont.headline)
+                                .foregroundStyle(Color.mText)
+                            Text("Tap + to snap a photo, scan, or search.")
+                                .font(MorselFont.caption)
+                                .foregroundStyle(Color.mTextSecondary)
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
             } else {
                 ForEach(MealType.allCases) { meal in
                     let group = entries.filter { $0.mealType == meal }

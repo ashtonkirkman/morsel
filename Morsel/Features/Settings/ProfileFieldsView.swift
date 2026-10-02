@@ -45,10 +45,13 @@ struct ProfileFieldsView: View {
         case .metric:
             SettingsNumberField(title: "Height", unit: "cm", value: $profile.heightCm)
         case .imperial:
-            SettingsNumberField(title: "Height", unit: "ft", value: feetBinding)
-            separator
-            SettingsNumberField(title: "", unit: "in", value: inchesBinding)
-                .accessibilityLabel("Height inches")
+            HStack(spacing: Spacing.s) {
+                Text("Height").font(MorselFont.body).foregroundStyle(Color.mText)
+                Spacer()
+                CompactNumberField(unit: "ft", value: feetBinding, accessibilityLabel: "Height feet")
+                CompactNumberField(unit: "in", value: inchesBinding, accessibilityLabel: "Height inches")
+            }
+            .padding(.vertical, 6)
         }
     }
 
