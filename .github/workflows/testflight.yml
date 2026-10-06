@@ -60,6 +60,22 @@ jobs:
           done
           exit $missing
 
+      - name: Check the certificates repo is reachable with MATCH_GIT_PAT
+        env:
+          MATCH_GIT_URL: ${{ vars.MATCH_GIT_URL || 'https://github.com/ashtonkirkman/morsel-certificates.git' }}
+          MATCH_GIT_PAT: ${{ secrets.MATCH_GIT_PAT }}
+          MATCH_GIT_USER: ${{ vars.MATCH_GIT_USER || github.repository_owner }}
+        run: |
+          set -uo pipefail
+          AUTH=$(printf '%s:%s' "$MATCH_GIT_USER" "$MATCH_GIT_PAT" | base64 | tr -d '\n')
+          if git -c "http.extraheader=Authorization: Basic $AUTH" ls-remote "$MATCH_GIT_URL" >/dev/null 2>err.txt; then
+            echo "OK: $MATCH_GIT_URL is readable with MATCH_GIT_PAT"
+          else
+            cat err.txt
+            echo "::error::MATCH_GIT_PAT cannot access $MATCH_GIT_URL. Open github.com/settings/personal-access-tokens, edit the token: Repository access = Only select repositories -> morsel-certificates (must be ticked, 'Public repositories' excludes a private repo); Permissions -> Contents = Read and write. Editing keeps the same token value."
+            exit 1
+          fi
+
       - name: fastlane beta
         env:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}

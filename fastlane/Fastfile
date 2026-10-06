@@ -140,39 +140,38 @@ platform :ios do
     "-----BEGIN PRIVATE KEY-----\n#{body.scan(/.{1,64}/).join("\n")}\n-----END PRIVATE KEY-----"
   end
 
-  # Best effort: register the App ID in the Developer Portal and the app record in App Store Connect
-  # using the API key, so the first run needs no clicking around in the web UI. If Apple refuses
-  # (role too low, name already taken), print exactly what to do by hand and carry on; match and
-  # pilot will then fail with a clearer message if the records are really missing.
+  # Register the App ID in the Developer Portal through the API key (allowed), and check that the
+  # App Store Connect app record exists. Apple's API does not allow creating app records
+  # (`apps` only permits GET/UPDATE), so that one step stays manual and we stop early with
+  # precise instructions instead of failing later inside the TestFlight upload.
   private_lane :ensure_app_records_exist do |options|
     require "spaceship"
     Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: options[:api_key])
 
-    bundle = Spaceship::ConnectAPI::BundleId.find(BUNDLE_ID)
-    if bundle
-      UI.message("App ID #{BUNDLE_ID} already registered")
-    else
-      Spaceship::ConnectAPI::BundleId.create(name: APP_NAME, platform: Spaceship::ConnectAPI::BundleIdPlatform::IOS, identifier: BUNDLE_ID)
-      UI.success("Registered App ID #{BUNDLE_ID}")
+    begin
+      if Spaceship::ConnectAPI::BundleId.find(BUNDLE_ID)
+        UI.message("App ID #{BUNDLE_ID} already registered")
+      else
+        Spaceship::ConnectAPI::BundleId.create(name: APP_NAME, platform: Spaceship::ConnectAPI::BundleIdPlatform::IOS, identifier: BUNDLE_ID)
+        UI.success("Registered App ID #{BUNDLE_ID}")
+      end
+    rescue StandardError => e
+      UI.important("Could not register the App ID automatically: #{e.message}")
+      UI.important("developer.apple.com > Certificates, Identifiers & Profiles > Identifiers > + > App IDs > App > Bundle ID (explicit) #{BUNDLE_ID}")
     end
 
     app = Spaceship::ConnectAPI::App.find(BUNDLE_ID)
     if app
-      UI.message("App Store Connect record '#{app.name}' already exists")
+      UI.message("App Store Connect record '#{app.name}' exists")
     else
-      Spaceship::ConnectAPI::App.create(
-        name: APP_NAME,
-        version_string: "0.1.0",
-        sku: "morsel-ios",
-        primary_locale: "en-US",
-        bundle_id: BUNDLE_ID,
-        platforms: [Spaceship::ConnectAPI::Platform::IOS]
-      )
-      UI.success("Created App Store Connect app '#{APP_NAME}'")
+      UI.user_error!(<<~MSG)
+        No App Store Connect app record exists for #{BUNDLE_ID} yet, and Apple's API does not allow creating one.
+        One-time manual step: appstoreconnect.apple.com > My Apps > + > New App
+          Platform: iOS   Name: any unique name (shown on TestFlight; changeable later)
+          Primary language: English (U.S.)   Bundle ID: pick "#{BUNDLE_ID}" from the list
+          SKU: morsel-ios   User Access: Full Access
+        Then re-run this workflow.
+      MSG
     end
-  rescue StandardError => e
-    UI.important("Could not auto-create the App ID / app record: #{e.message}")
-    UI.important("Do it once by hand: developer.apple.com > Identifiers > + App IDs > #{BUNDLE_ID}; " \
-                 "then appstoreconnect.apple.com > My Apps > + New App > iOS, name '#{APP_NAME}', that bundle ID, SKU morsel-ios.")
   end
 end

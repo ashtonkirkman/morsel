@@ -55,11 +55,15 @@ One-time setup, about 20 minutes, all in a browser:
    Secret `MATCH_PASSWORD`. Keep a copy in your password manager.
 6. **Add the six secrets** at https://github.com/ashtonkirkman/morsel/settings/secrets/actions:
    `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_CONTENT`, `MATCH_PASSWORD`, `MATCH_GIT_PAT`.
-7. **Run it.** Actions tab > TestFlight > Run workflow. The first run registers the App ID
-   and the App Store Connect app record through the API key (if Apple refuses, the log
-   prints the two web-UI steps), creates the certificate and profile, archives, and
-   uploads. Expect 10-15 minutes.
-8. **On the phone.** Install TestFlight from the App Store. In App Store Connect >
+7. **App record.** Apple's API cannot create this one. appstoreconnect.apple.com > My Apps
+   > + > New App: Platform iOS, Name (any unique name, changeable later), Primary language
+   English (U.S.), Bundle ID `com.ashtonkirkman.morsel` (the first workflow run registers
+   it in the portal; if it is not in the list yet, register it under developer.apple.com >
+   Identifiers), SKU `morsel-ios`, User Access Full Access.
+8. **Run it.** Actions tab > TestFlight > Run workflow. The run checks the token can reach
+   the certificates repo, registers the App ID if needed, creates the certificate and
+   profile, archives, and uploads. Expect 10-15 minutes.
+9. **On the phone.** Install TestFlight from the App Store. In App Store Connect >
    My Apps > Morsel > TestFlight, the build appears after processing (5-30 min); add
    yourself under Internal Testing (your Apple ID must be a user in Users and Access,
    which the account holder always is). Accept the email invite, tap Install.
