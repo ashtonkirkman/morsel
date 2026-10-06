@@ -130,6 +130,7 @@ platform :ios do
   #   3. just the body lines between BEGIN and END
   # and always hand fastlane a complete PEM.
   def normalized_p8(raw)
+    require "base64"
     text = raw.to_s.strip
     UI.user_error!("ASC_KEY_CONTENT is empty") if text.empty?
     text = Base64.decode64(text).strip if text.start_with?("LS0tLS1")
