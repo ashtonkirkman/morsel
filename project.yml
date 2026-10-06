@@ -30,7 +30,7 @@ targets:
     info:
       path: Morsel/Resources/Info.plist
       properties:
-        CFBundleDisplayName: Morsel
+        CFBundleDisplayName: Free Track
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         UILaunchScreen: {}

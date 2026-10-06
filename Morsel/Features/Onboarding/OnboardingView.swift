@@ -116,7 +116,7 @@ struct WelcomePage: View {
                 icon("magnifyingglass")
             }
             VStack(spacing: Spacing.s) {
-                Text("Morsel")
+                Text("Free Track")
                     .font(MorselFont.display)
                     .foregroundStyle(Color.mText)
                 Text("Log meals in seconds")

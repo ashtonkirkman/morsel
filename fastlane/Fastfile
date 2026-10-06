@@ -23,7 +23,7 @@ default_platform(:ios)
 PROJECT   = "Morsel.xcodeproj"
 SCHEME    = "Morsel"
 BUNDLE_ID = "com.ashtonkirkman.morsel"
-APP_NAME  = "Morsel"
+APP_NAME  = "Free Track"
 
 platform :ios do
   before_all do
