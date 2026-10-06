@@ -67,14 +67,28 @@ jobs:
           MATCH_GIT_USER: ${{ vars.MATCH_GIT_USER || github.repository_owner }}
         run: |
           set -uo pipefail
-          AUTH=$(printf '%s:%s' "$MATCH_GIT_USER" "$MATCH_GIT_PAT" | base64 | tr -d '\n')
+          RAW_LEN=${#MATCH_GIT_PAT}
+          PAT=$(printf '%s' "$MATCH_GIT_PAT" | tr -d '[:space:]')
+          echo "token: length=${#PAT} (raw ${RAW_LEN}, stray whitespace: $([ "$RAW_LEN" = "${#PAT}" ] && echo no || echo YES)), prefix=${PAT:0:11}"
+          REPO_PATH=$(printf '%s' "$MATCH_GIT_URL" | sed -E 's#^https://github.com/##; s#\.git/?$##')
+          USER_CODE=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $PAT" https://api.github.com/user)
+          REPO_CODE=$(curl -s -o /dev/null -w '%{http_code}' -H "Authorization: Bearer $PAT" "https://api.github.com/repos/$REPO_PATH")
+          echo "GET /user -> $USER_CODE   (200 = token valid, 401 = token string wrong/revoked/expired)"
+          echo "GET /repos/$REPO_PATH -> $REPO_CODE   (200 = repo visible to token, 404 = repo not in the token's selection)"
+          AUTH=$(printf '%s:%s' "$MATCH_GIT_USER" "$PAT" | base64 | tr -d '\n')
           if git -c "http.extraheader=Authorization: Basic $AUTH" ls-remote "$MATCH_GIT_URL" >/dev/null 2>err.txt; then
             echo "OK: $MATCH_GIT_URL is readable with MATCH_GIT_PAT"
-          else
-            cat err.txt
-            echo "::error::MATCH_GIT_PAT cannot access $MATCH_GIT_URL. Open github.com/settings/personal-access-tokens, edit the token: Repository access = Only select repositories -> morsel-certificates (must be ticked, 'Public repositories' excludes a private repo); Permissions -> Contents = Read and write. Editing keeps the same token value."
-            exit 1
+            exit 0
           fi
+          cat err.txt
+          if [ "$USER_CODE" != "200" ]; then
+            echo "::error::MATCH_GIT_PAT is not a valid token (GitHub answers $USER_CODE). The secret holds an old/regenerated/mistyped value. Generate a token at github.com/settings/personal-access-tokens (Only select repositories -> morsel-certificates, Contents: Read and write), copy the whole github_pat_... string, and paste it into the MATCH_GIT_PAT secret."
+          elif [ "$REPO_CODE" != "200" ]; then
+            echo "::error::The token is valid but cannot see $REPO_PATH (GitHub answers $REPO_CODE). Edit the token: Repository access = Only select repositories -> tick morsel-certificates; Permissions -> Contents = Read and write; click Update."
+          else
+            echo "::error::Token valid and repo visible, but git clone was refused: Contents permission is probably Read-only. Set Contents = Read and write on the token."
+          fi
+          exit 1
 
       - name: fastlane beta
         env:
@@ -95,7 +109,8 @@ jobs:
         run: |
           set -euo pipefail
           export MATCH_GIT_BASIC_AUTHORIZATION
-          MATCH_GIT_BASIC_AUTHORIZATION=$(printf '%s:%s' "$MATCH_GIT_USER" "$MATCH_GIT_PAT" | base64 | tr -d '\n')
+          PAT=$(printf '%s' "$MATCH_GIT_PAT" | tr -d '[:space:]')
+          MATCH_GIT_BASIC_AUTHORIZATION=$(printf '%s:%s' "$MATCH_GIT_USER" "$PAT" | base64 | tr -d '\n')
           fastlane ios beta
 
       - name: Upload signed IPA
