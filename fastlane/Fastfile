@@ -51,6 +51,9 @@ platform :ios do
       UI.user_error!("#{k} is not set. See docs/INSTALL_ON_IPHONE.md (Route B).") if ENV[k].to_s.empty?
     end
     team_id = ENV["APPLE_TEAM_ID"]
+    # Read this BEFORE setup_ci: setup_ci exports MATCH_READONLY=true, which would stop match from
+    # ever creating the certificate on the first run.
+    match_readonly = ENV["MATCH_READONLY"] == "true"
 
     # On CI: create a throwaway keychain so match can import the signing identity.
     setup_ci
@@ -74,7 +77,7 @@ platform :ios do
       api_key: api_key,
       git_url: ENV["MATCH_GIT_URL"],
       git_branch: ENV.fetch("MATCH_GIT_BRANCH", "main"),
-      readonly: ENV["MATCH_READONLY"] == "true",
+      readonly: match_readonly,
       skip_docs: true
     )
     profile_name = ENV["sigh_#{BUNDLE_ID}_appstore_profile-name"]
