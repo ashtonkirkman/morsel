@@ -28,6 +28,10 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Do not leave GITHUB_TOKEN wired into git config for github.com: it would override the
+          # MATCH_GIT_PAT credential when match clones the private certificates repo.
+          persist-credentials: false
 
       - name: Select newest Xcode 16
         run: |
@@ -76,6 +80,7 @@ jobs:
           echo "GET /user -> $USER_CODE   (200 = token valid, 401 = token string wrong/revoked/expired)"
           echo "GET /repos/$REPO_PATH -> $REPO_CODE   (200 = repo visible to token, 404 = repo not in the token's selection)"
           AUTH=$(printf '%s:%s' "$MATCH_GIT_USER" "$PAT" | base64 | tr -d '\n')
+          cd "$RUNNER_TEMP"   # outside the checkout, so no repo-local git config can interfere
           if git -c "http.extraheader=Authorization: Basic $AUTH" ls-remote "$MATCH_GIT_URL" >/dev/null 2>err.txt; then
             echo "OK: $MATCH_GIT_URL is readable with MATCH_GIT_PAT"
             exit 0
