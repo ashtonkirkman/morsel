@@ -25,23 +25,47 @@ and the phone must be plugged into the PC the first time.
 Re-sign every 7 days by repeating step 3. Sideloadly can do this over Wi-Fi after
 the first USB install if you enable it in its settings.
 
-## Route B: Apple Developer Program ($99/yr) + TestFlight, driven entirely by CI
+## Route B: Apple Developer Program + TestFlight, driven entirely by CI
 
 What you get: installs over the air from the TestFlight app, builds last 90 days,
-no cable, no weekly ritual, and later a real App Store release. Still no Mac: the
-GitHub Actions macOS runner does all signing and uploading.
+no cable, and later a real App Store release. Still no Mac: the GitHub Actions
+macOS runner (`.github/workflows/testflight.yml`, lane `fastlane beta`) signs and
+uploads. Signing uses fastlane `match`: one private git repo holds the encrypted
+distribution certificate so every run signs with the same identity.
 
-1. Enrol at https://developer.apple.com/programs/enroll (needs the Apple Developer
-   app on the iPhone for identity verification). Approval can take a day or two.
-2. In App Store Connect create an API key (Users and Access > Integrations > App
-   Store Connect API, role App Manager) and note Key ID, Issuer ID, and the .p8.
-3. Create an empty private GitHub repo `morsel-certificates` for fastlane match.
-4. Add repository secrets: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`
-   (base64 of the .p8), `MATCH_PASSWORD`, `MATCH_GIT_TOKEN` (PAT with repo scope),
-   and `APPLE_TEAM_ID`.
-5. Run the `TestFlight` workflow by hand once (workflow_dispatch). The first run
-   creates the certificate and profile through match, builds, and uploads.
-6. Install TestFlight on the phone and accept the invite sent to your Apple ID.
+One-time setup, about 20 minutes, all in a browser:
 
-The fastlane lanes already exist in `fastlane/Fastfile`; wiring the workflow and
-secrets is the remaining piece once you have a Team ID.
+1. **Team ID.** https://developer.apple.com/account > Membership details > Team ID
+   (10 characters). Secret `APPLE_TEAM_ID`.
+2. **App Store Connect API key.** https://appstoreconnect.apple.com > Users and
+   Access > Integrations > App Store Connect API > Team Keys > + . Name "GitHub CI",
+   role **Admin** (Admin is needed to create certificates and the app record).
+   Download the `.p8` once; Apple never shows it again.
+   Secrets: `ASC_KEY_ID` (the Key ID column), `ASC_ISSUER_ID` (top of that page),
+   `ASC_KEY_CONTENT` = the .p8 base64-encoded on one line. In WSL:
+   `base64 -w0 ~/Downloads/AuthKey_XXXXXXXXXX.p8`.
+3. **Certificates repo.** Create an empty **private** GitHub repo named
+   `morsel-certificates` (any name works if you set repository variable
+   `MATCH_GIT_URL`). Do not add a README; match wants it empty.
+4. **PAT for that repo.** GitHub > Settings > Developer settings > Fine-grained
+   tokens > Generate. Repository access: only `morsel-certificates`. Permissions:
+   Contents = Read and write. Secret `MATCH_GIT_PAT`.
+5. **Passphrase.** Invent one (anything long); match encrypts the certificates with it.
+   Secret `MATCH_PASSWORD`. Keep a copy in your password manager.
+6. **Add the six secrets** at https://github.com/ashtonkirkman/morsel/settings/secrets/actions:
+   `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_CONTENT`, `MATCH_PASSWORD`, `MATCH_GIT_PAT`.
+7. **Run it.** Actions tab > TestFlight > Run workflow. The first run registers the App ID
+   and the App Store Connect app record through the API key (if Apple refuses, the log
+   prints the two web-UI steps), creates the certificate and profile, archives, and
+   uploads. Expect 10-15 minutes.
+8. **On the phone.** Install TestFlight from the App Store. In App Store Connect >
+   My Apps > Morsel > TestFlight, the build appears after processing (5-30 min); add
+   yourself under Internal Testing (your Apple ID must be a user in Users and Access,
+   which the account holder always is). Accept the email invite, tap Install.
+
+From then on: Actions > TestFlight > Run workflow (or push a tag `v0.1.1`) ships a new
+build; the phone updates through TestFlight. Build numbers come from the workflow run
+number, so they never collide.
+
+If you want the Apple ID route A on a paid account: Sideloadly signs for a full year
+instead of 7 days, so route A is also a reasonable long-term option for a single phone.

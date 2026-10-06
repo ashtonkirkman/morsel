@@ -159,6 +159,15 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  fastlane-syntax:
+    name: Fastfile syntax
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: ruby -c fastlane/Fastfile && ruby -c fastlane/Appfile
+      - run: python3 -c "import yaml,glob; [yaml.safe_load(open(f)) for f in glob.glob('.github/workflows/*.yml')]; print('workflows parse')"
+
   swiftlint:
     name: SwiftLint (advisory)
     runs-on: ubuntu-latest

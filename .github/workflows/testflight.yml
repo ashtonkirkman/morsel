@@ -1,0 +1,104 @@
+name: TestFlight
+
+# Builds a signed Release archive on a GitHub macOS runner and uploads it to TestFlight.
+# Run it by hand from the Actions tab (workflow_dispatch) or push a tag like v0.1.0.
+# Needs the repository secrets listed in docs/INSTALL_ON_IPHONE.md (Route B).
+
+on:
+  workflow_dispatch:
+    inputs:
+      changelog:
+        description: "What to test (shown in TestFlight)"
+        required: false
+        default: "Internal build"
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  beta:
+    name: Sign & upload to TestFlight
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select newest Xcode 16
+        run: |
+          set -euo pipefail
+          XCODE=$(ls -d /Applications/Xcode_16*.app 2>/dev/null | sort -V | tail -n 1 || true)
+          if [ -n "$XCODE" ]; then sudo xcode-select -s "$XCODE"; fi
+          xcodebuild -version
+
+      - name: Install XcodeGen, xcpretty, fastlane
+        run: |
+          set -euo pipefail
+          brew update >/dev/null || true
+          brew install xcodegen
+          sudo gem install xcpretty --no-document
+          if ! command -v fastlane >/dev/null; then brew install fastlane; fi
+          fastlane --version | tail -n 1
+
+      - name: Check secrets are present
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_PAT: ${{ secrets.MATCH_GIT_PAT }}
+        run: |
+          missing=0
+          for v in APPLE_TEAM_ID ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_CONTENT MATCH_PASSWORD MATCH_GIT_PAT; do
+            if [ -z "${!v:-}" ]; then echo "::error::repository secret $v is not set"; missing=1; fi
+          done
+          exit $missing
+
+      - name: fastlane beta
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}
+          ASC_KEY_CONTENT_BASE64: "true"
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_URL: ${{ vars.MATCH_GIT_URL || 'https://github.com/ashtonkirkman/morsel-certificates.git' }}
+          MATCH_GIT_PAT: ${{ secrets.MATCH_GIT_PAT }}
+          MATCH_GIT_USER: ${{ vars.MATCH_GIT_USER || github.repository_owner }}
+          BUILD_NUMBER: ${{ github.run_number }}
+          TESTFLIGHT_CHANGELOG: ${{ inputs.changelog || github.ref_name }}
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_HIDE_CHANGELOG: "1"
+          LC_ALL: en_US.UTF-8
+          LANG: en_US.UTF-8
+        run: |
+          set -euo pipefail
+          export MATCH_GIT_BASIC_AUTHORIZATION
+          MATCH_GIT_BASIC_AUTHORIZATION=$(printf '%s:%s' "$MATCH_GIT_USER" "$MATCH_GIT_PAT" | base64 | tr -d '\n')
+          fastlane ios beta
+
+      - name: Upload signed IPA
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Morsel-TestFlight-${{ github.run_number }}
+          path: fastlane/build/Morsel.ipa
+          if-no-files-found: ignore
+          retention-days: 90
+
+      - name: Upload fastlane logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fastlane-logs-${{ github.run_number }}
+          path: |
+            ~/Library/Logs/gym/*.log
+            fastlane/report.xml
+          if-no-files-found: ignore
+          retention-days: 14
