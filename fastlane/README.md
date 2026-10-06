@@ -8,7 +8,7 @@
 Setup, secrets and the first-run walkthrough live in `docs/INSTALL_ON_IPHONE.md` (Route B).
 
 Env the `beta` lane reads: `APPLE_TEAM_ID`, `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_CONTENT`
-(base64 .p8; set `ASC_KEY_CONTENT_BASE64=false` for raw PEM), `MATCH_PASSWORD`, `MATCH_GIT_URL`,
+(.p8 as raw PEM, body only, or base64), `MATCH_PASSWORD`, `MATCH_GIT_URL`,
 `MATCH_GIT_BASIC_AUTHORIZATION` (base64 `user:PAT`), optional `BUILD_NUMBER`, `TESTFLIGHT_CHANGELOG`,
 `MATCH_READONLY=true` to forbid creating new certificates.
 

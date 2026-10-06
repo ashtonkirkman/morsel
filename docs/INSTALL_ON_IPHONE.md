@@ -42,8 +42,9 @@ One-time setup, about 20 minutes, all in a browser:
    role **Admin** (Admin is needed to create certificates and the app record).
    Download the `.p8` once; Apple never shows it again.
    Secrets: `ASC_KEY_ID` (the Key ID column), `ASC_ISSUER_ID` (top of that page),
-   `ASC_KEY_CONTENT` = the .p8 base64-encoded on one line. In WSL:
-   `base64 -w0 ~/Downloads/AuthKey_XXXXXXXXXX.p8`.
+   `ASC_KEY_CONTENT` = the contents of the .p8 file. Open it in Notepad, select all,
+   paste; the BEGIN/END lines and line breaks are fine (the lane also accepts a
+   base64 copy or just the body lines).
 3. **Certificates repo.** Create an empty **private** GitHub repo named
    `morsel-certificates` (any name works if you set repository variable
    `MATCH_GIT_URL`). Do not add a README; match wants it empty.
