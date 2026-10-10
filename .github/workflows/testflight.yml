@@ -124,8 +124,8 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Morsel-TestFlight-${{ github.run_number }}
-          path: fastlane/build/Morsel.ipa
+          name: FreeTrack-TestFlight-${{ github.run_number }}
+          path: fastlane/build/FreeTrack.ipa
           if-no-files-found: ignore
           retention-days: 90
 

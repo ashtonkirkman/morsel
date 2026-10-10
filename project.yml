@@ -1,5 +1,5 @@
-# XcodeGen spec. On a Mac: `brew install xcodegen && xcodegen generate && open Morsel.xcodeproj`
-name: Morsel
+# XcodeGen spec. On a Mac: `brew install xcodegen && xcodegen generate && open FreeTrack.xcodeproj`
+name: FreeTrack
 options:
   bundleIdPrefix: com.ashtonkirkman
   deploymentTarget:
@@ -19,16 +19,16 @@ settings:
     ENABLE_USER_SCRIPT_SANDBOXING: YES
     SWIFT_TREAT_WARNINGS_AS_ERRORS: NO
 targets:
-  Morsel:
+  FreeTrack:
     type: application
     platform: iOS
     sources:
-      - path: Morsel
+      - path: FreeTrack
         excludes:
           - "Resources/Info.plist"
           - "**/*.md"
     info:
-      path: Morsel/Resources/Info.plist
+      path: FreeTrack/Resources/Info.plist
       properties:
         CFBundleDisplayName: Free Track
         CFBundleShortVersionString: $(MARKETING_VERSION)
@@ -38,8 +38,8 @@ targets:
         UISupportedInterfaceOrientations~ipad: [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
         UIRequiresFullScreen: true
         ITSAppUsesNonExemptEncryption: false
-        NSCameraUsageDescription: Morsel uses the camera to scan barcodes and photograph meals so it can log calories for you.
-        NSPhotoLibraryUsageDescription: Morsel can estimate calories from meal photos you pick from your library.
+        NSCameraUsageDescription: Free Track uses the camera to scan barcodes and photograph meals so it can log calories for you.
+        NSPhotoLibraryUsageDescription: Free Track can estimate calories from meal photos you pick from your library.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: false
         UIApplicationSceneManifest:
@@ -52,47 +52,47 @@ targets:
         INFOPLIST_KEY_UIUserInterfaceStyle: Automatic
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
-  MorselTests:
+  FreeTrackTests:
     type: bundle.unit-test
     platform: iOS
-    sources: [MorselTests]
+    sources: [FreeTrackTests]
     dependencies:
-      - target: Morsel
+      - target: FreeTrack
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ashtonkirkman.morsel.tests
         GENERATE_INFOPLIST_FILE: YES
-  MorselUITests:
+  FreeTrackUITests:
     type: bundle.ui-testing
     platform: iOS
-    sources: [MorselUITests]
+    sources: [FreeTrackUITests]
     dependencies:
-      - target: Morsel
+      - target: FreeTrack
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ashtonkirkman.morsel.uitests
         GENERATE_INFOPLIST_FILE: YES
-        TEST_TARGET_NAME: Morsel
+        TEST_TARGET_NAME: FreeTrack
 schemes:
   # Screenshot walk-through (UI tests only). `make screenshots` / CI "Screenshots" step.
-  MorselScreenshots:
+  FreeTrackScreenshots:
     build:
       targets:
-        Morsel: all
-        MorselUITests: [test]
+        FreeTrack: all
+        FreeTrackUITests: [test]
     test:
       config: Debug
-      targets: [MorselUITests]
-  Morsel:
+      targets: [FreeTrackUITests]
+  FreeTrack:
     build:
       targets:
-        Morsel: all
-        MorselTests: [test]
+        FreeTrack: all
+        FreeTrackTests: [test]
     run:
       config: Debug
     test:
       config: Debug
       gatherCoverageData: true
-      targets: [MorselTests]
+      targets: [FreeTrackTests]
     archive:
       config: Release

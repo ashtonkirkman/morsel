@@ -1,4 +1,4 @@
-# fastlane lanes for Morsel.
+# fastlane lanes for Free Track.
 #
 #   fastlane test    # unit tests on a simulator -- no Apple account needed
 #   fastlane beta    # archive + upload to TestFlight -- Apple Developer Program + ASC API key
@@ -20,8 +20,8 @@
 
 default_platform(:ios)
 
-PROJECT   = "Morsel.xcodeproj"
-SCHEME    = "Morsel"
+PROJECT   = "FreeTrack.xcodeproj"
+SCHEME    = "FreeTrack"
 BUNDLE_ID = "com.ashtonkirkman.morsel"
 APP_NAME  = "Free Track"
 
@@ -31,7 +31,7 @@ platform :ios do
     sh("cd .. && xcodegen generate --spec project.yml")
   end
 
-  desc "Run MorselTests on the newest iPhone simulator (no signing needed)"
+  desc "Run FreeTrackTests on the newest iPhone simulator (no signing needed)"
   lane :test do
     udid = sh("cd .. && xcrun simctl list devices available -j | python3 scripts/pick_simulator.py").strip
     scan(
@@ -86,7 +86,7 @@ platform :ios do
     # Pin the app target to the match identity; everything else in the project stays untouched.
     update_code_signing_settings(
       path: PROJECT,
-      targets: ["Morsel"],
+      targets: ["FreeTrack"],
       use_automatic_signing: false,
       team_id: team_id,
       bundle_identifier: BUNDLE_ID,
@@ -114,7 +114,7 @@ platform :ios do
         provisioningProfiles: { BUNDLE_ID => profile_name }
       },
       output_directory: "fastlane/build",
-      output_name: "Morsel.ipa",
+      output_name: "FreeTrack.ipa",
       clean: true
     )
 

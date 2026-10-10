@@ -1,9 +1,9 @@
-# Morsel developer shortcuts. Everything Xcode-related needs a Mac; `icon`, `lint` and `proxy` work anywhere.
+# Free Track developer shortcuts. Everything Xcode-related needs a Mac; `icon`, `lint` and `proxy` work anywhere.
 #
-#   make generate   XcodeGen -> Morsel.xcodeproj
+#   make generate   XcodeGen -> FreeTrack.xcodeproj
 #   make build      Debug build for the newest iPhone simulator (same flags as CI)
-#   make test       Build + run MorselTests on the simulator (same flags as CI)
-#   make icon       Regenerate Morsel/Resources/.../AppIcon-1024.png
+#   make test       Build + run FreeTrackTests on the simulator (same flags as CI)
+#   make icon       Regenerate FreeTrack/Resources/.../AppIcon-1024.png
 #   make lint       SwiftLint (native binary if installed, otherwise docker)
 #   make proxy      Typecheck server/claude-proxy
 #   make clean      Remove generated project + build products
@@ -11,8 +11,8 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
-PROJECT      := Morsel.xcodeproj
-SCHEME       := Morsel
+PROJECT      := FreeTrack.xcodeproj
+SCHEME       := FreeTrack
 RESULT       := TestResults.xcresult
 SIM_UDID     ?= $(shell xcrun simctl list devices available -j 2>/dev/null | python3 scripts/pick_simulator.py 2>/dev/null)
 DESTINATION  := platform=iOS Simulator,id=$(SIM_UDID)
@@ -43,7 +43,7 @@ icon:
 
 screenshots: generate ## Walk every screen in the Simulator and write PNGs to ./screenshots
 	mkdir -p screenshots
-	TEST_RUNNER_SCREENSHOT_DIR="$$PWD/screenshots" xcodebuild -project Morsel.xcodeproj -scheme MorselScreenshots \
+	TEST_RUNNER_SCREENSHOT_DIR="$$PWD/screenshots" xcodebuild -project FreeTrack.xcodeproj -scheme FreeTrackScreenshots \
 		-destination "platform=iOS Simulator,id=$$(python3 scripts/pick_simulator.py)" \
 		CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO test
 	python3 scripts/contact_sheet.py screenshots screenshots/contact-sheet.png || true

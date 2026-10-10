@@ -2,7 +2,7 @@
 
 | Lane | Runs where | What it does |
 |---|---|---|
-| `fastlane test` | any Mac, free Apple ID | `xcodegen generate`, then `scan` runs `MorselTests` on the newest iPhone simulator |
+| `fastlane test` | any Mac, free Apple ID | `xcodegen generate`, then `scan` runs `FreeTrackTests` on the newest iPhone simulator |
 | `fastlane beta` | `.github/workflows/testflight.yml` (macos-15), or a Mac with the same env vars | `match` (git storage) fetches/creates the Apple Distribution cert + App Store profile, archives Release, uploads to TestFlight |
 
 Setup, secrets and the first-run walkthrough live in `docs/INSTALL_ON_IPHONE.md` (Route B).

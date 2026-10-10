@@ -1,6 +1,6 @@
-# Morsel
+# Free Track
 
-Calorie logging with the work taken out. Snap a photo, scan a barcode, or type a word; Morsel does the
+Calorie logging with the work taken out. Snap a photo, scan a barcode, or type a word; Free Track does the
 rest and shows you one number and one ring.
 
 > **Pre-release: not yet built on a Mac.** The owner is developing on Windows/WSL with no Mac and no
@@ -48,7 +48,7 @@ Locally on a Mac: `make screenshots` writes the same set to `./screenshots/`.
 
 | Situation | Do this |
 |---|---|
-| Mac with Xcode 16 | `brew install xcodegen && xcodegen generate && open Morsel.xcodeproj`, run on a simulator (no signing needed) |
+| Mac with Xcode 16 | `brew install xcodegen && xcodegen generate && open FreeTrack.xcodeproj`, run on a simulator (no signing needed) |
 | No Mac | Push a branch, open a PR to `main`, read the **iOS** workflow result; download `TestResults.xcresult` from a failed run |
 | Paid Apple Developer account | Set `DEVELOPMENT_TEAM` in `project.yml`, then TestFlight via Xcode Organizer or `fastlane beta` |
 
@@ -84,14 +84,14 @@ Settings > AI. A "Direct" mode with a key on the device exists for personal use.
 
 ```
 project.yml              XcodeGen spec (the .xcodeproj is generated, never committed)
-Morsel/
-  App/                   MorselApp, AppServices (DI), RootView (tabs, + button, toast)
+FreeTrack/
+  App/                   FreeTrackApp, AppServices (DI), RootView (tabs, + button, toast)
   Core/                  Models (SwiftData), Services (protocols, settings, keychain),
                          Nutrition (Mifflin-St Jeor), Persistence (container, queries, PhotoStore)
   DesignSystem/          Theme tokens + the component set
   Features/              Today, History, Settings, Onboarding, Add, Snap, Scan, Search
   Resources/             Assets.xcassets (icon, accent), PrivacyInfo.xcprivacy
-MorselTests/             XCTest unit tests (pure logic)
+FreeTrackTests/             XCTest unit tests (pure logic)
 server/claude-proxy/     Cloudflare Worker holding the Anthropic key
 docs/                    Build, design, data and release docs
 scripts/                 make_icon.py (app icon), pick_simulator.py (CI helper)
@@ -104,7 +104,7 @@ Makefile                 generate / build / test / icon / lint / proxy
 
 ```bash
 make generate   # xcodegen
-make test       # simulator build + MorselTests, same flags as CI (Mac only)
+make test       # simulator build + FreeTrackTests, same flags as CI (Mac only)
 make icon       # regenerate the app icon (python3, Pillow optional)
 make lint       # swiftlint, native or via docker
 make proxy      # typecheck server/claude-proxy

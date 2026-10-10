@@ -1,4 +1,4 @@
-# Putting Morsel on your iPhone without a Mac
+# Putting Free Track on your iPhone without a Mac
 
 Two routes. Start with the free one; move to TestFlight when the weekly re-sign gets old.
 
@@ -11,7 +11,7 @@ and the phone must be plugged into the PC the first time.
 
 1. On the PC, install iTunes from apple.com (not the Microsoft Store build) so the
    Apple USB drivers are present, then install Sideloadly from https://sideloadly.io.
-2. Download `Morsel-unsigned.ipa` from the GitHub release
+2. Download `FreeTrack-unsigned.ipa` from the GitHub release
    https://github.com/ashtonkirkman/morsel/releases/tag/latest
    (CI refreshes it on every push to main).
 3. Plug the iPhone in, tap Trust, open Sideloadly, drag the IPA in, enter your
@@ -19,7 +19,7 @@ and the phone must be plugged into the PC the first time.
    code; it signs the IPA with a free development certificate and installs it.
 4. On the phone: Settings > Privacy & Security > Developer Mode > on (reboot), then
    Settings > General > VPN & Device Management > trust your Apple ID.
-5. Open Morsel. For the photo feature, go to Settings > Claude and either paste an
+5. Open Free Track. For the photo feature, go to Settings > Claude and either paste an
    Anthropic API key (direct mode) or point it at your deployed proxy.
 
 Re-sign every 7 days by repeating step 3. Sideloadly can do this over Wi-Fi after
@@ -64,7 +64,7 @@ One-time setup, about 20 minutes, all in a browser:
    the certificates repo, registers the App ID if needed, creates the certificate and
    profile, archives, and uploads. Expect 10-15 minutes.
 9. **On the phone.** Install TestFlight from the App Store. In App Store Connect >
-   My Apps > Morsel > TestFlight, the build appears after processing (5-30 min); add
+   My Apps > Free Track > TestFlight, the build appears after processing (5-30 min); add
    yourself under Internal Testing (your Apple ID must be a user in Users and Access,
    which the account holder always is). Accept the email invite, tap Install.
 

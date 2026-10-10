@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate the Morsel app icon (1024x1024 PNG, no alpha).
+"""Regenerate the Free Track app icon (1024x1024 PNG, no alpha).
 
 Design: solid accent background (#2F8F5B) with a centered white ring (stroke ~70 px)
 that echoes the calorie ring. The ring has a small gap at 12 o'clock with a filled
@@ -32,7 +32,7 @@ DOT_RADIUS = 46.0                  # filled dot inside the gap, on the ring trac
 
 DEFAULT_OUT = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "Morsel", "Resources", "Assets.xcassets", "AppIcon.appiconset", "AppIcon-1024.png",
+    "FreeTrack", "Resources", "Assets.xcassets", "AppIcon.appiconset", "AppIcon-1024.png",
 )
 
 

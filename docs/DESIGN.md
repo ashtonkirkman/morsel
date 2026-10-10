@@ -1,8 +1,8 @@
 # Design
 
-Morsel's design goal is that logging a meal feels lighter than not logging it. One accent colour, warm
+Free Track's design goal is that logging a meal feels lighter than not logging it. One accent colour, warm
 neutrals, big numerals, soft cards, and never more than one confirm tap after a capture. This document
-is the human-readable side of `Morsel/DesignSystem/Theme.swift` and `Components/`; when they disagree,
+is the human-readable side of `FreeTrack/DesignSystem/Theme.swift` and `Components/`; when they disagree,
 the code wins and this file gets updated.
 
 ## Visual language
@@ -33,7 +33,7 @@ from the background by tone alone. Do not introduce a second accent; state is sh
 - **Spacing** (`Spacing`): 4 / 8 / 16 / 24 / 32 / 48. Screen gutters are 16, card padding 16, section
   gaps 24.
 - **Radius** (`Radius`): cards 20, controls 14, chips fully round. Always `.continuous` corners.
-- **Type** (`MorselFont`): rounded design for anything numeric or heading-like, default design for body
+- **Type** (`FreeTrackFont`): rounded design for anything numeric or heading-like, default design for body
   text. `display` is the 56 pt semibold hero numeral (today's calories); `numeral` is the monospaced
   title3 used in rows so columns of calories align. Everything else uses system text styles so Dynamic
   Type works for free.
@@ -49,7 +49,7 @@ from the background by tone alone. Do not introduce a second accent; state is sh
 | `Card` | The one container. Soft 20 pt surface, no border. |
 | `SectionHeader` | Small caps-free header with optional trailing action. |
 | `EmptyStateView` | Icon + one sentence + one button. Never a blank screen. |
-| `PrimaryButtonStyle` (`.morselPrimary`) / `SecondaryButtonStyle` (`.morselSecondary`) | Full-width accent button / tinted secondary. |
+| `PrimaryButtonStyle` (`.freeTrackPrimary`) / `SecondaryButtonStyle` (`.freeTrackSecondary`) | Full-width accent button / tinted secondary. |
 | `Chip` | Pill for meal type and serving presets. |
 | `FloatingAddButton` | The big "+" over the tab bar; the only element with a shadow besides the toast. |
 | `CalorieRing` | Thin progress ring with the hero numeral inside. Green up to the goal, warning past it. The app icon echoes this. |

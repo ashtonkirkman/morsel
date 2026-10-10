@@ -1,9 +1,9 @@
 # Lenient SwiftLint config. CI runs this with continue-on-error, so it advises rather than gates.
 # Run locally with `make lint` (needs swiftlint or docker).
 included:
-  - Morsel
+  - FreeTrack
 excluded:
-  - MorselTests
+  - FreeTrackTests
   - server
   - build
   - DerivedData

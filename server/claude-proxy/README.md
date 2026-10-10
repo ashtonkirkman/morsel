@@ -1,6 +1,6 @@
-# Morsel Claude proxy
+# Free Track Claude proxy
 
-A tiny Cloudflare Worker that sits between the Morsel iOS app and the Anthropic API so the
+A tiny Cloudflare Worker that sits between the Free Track iOS app and the Anthropic API so the
 API key lives on the server, not on phones.
 
 It accepts `POST /v1/messages`, adds `x-api-key` from a Worker secret, and forwards the request
@@ -33,7 +33,7 @@ npx wrangler deploy
 ```
 
 `wrangler deploy` prints a URL like `https://morsel-claude-proxy.<your-subdomain>.workers.dev`.
-In Morsel open **Settings → Photo logging**, choose **Proxy server**, and paste that URL
+In Free Track open **Settings → Photo logging**, choose **Proxy server**, and paste that URL
 (no trailing `/v1/messages`; the app appends it).
 
 ### Enabling the rate limit
@@ -54,6 +54,6 @@ curl -s http://127.0.0.1:8787/v1/messages \
 
 ## Notes
 
-- If you set `APP_TOKEN`, paste the same value into Morsel → Settings → Photo logging → “Proxy token”
+- If you set `APP_TOKEN`, paste the same value into Free Track → Settings → Photo logging → “Proxy token”
   (stored in the Keychain and sent as `x-morsel-token`).
 - Streaming requests (`"stream": true`) are passed through untouched; the app does not use them.

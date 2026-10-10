@@ -1,5 +1,5 @@
 /**
- * Morsel Claude proxy — a Cloudflare Worker that holds the Anthropic API key so the iOS app never does.
+ * Free Track Claude proxy — a Cloudflare Worker that holds the Anthropic API key so the iOS app never does.
  *
  * Forwards POST /v1/messages to api.anthropic.com with guardrails:
  *   - only POST /v1/messages (everything else 404)

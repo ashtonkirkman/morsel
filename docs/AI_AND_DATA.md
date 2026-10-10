@@ -1,6 +1,6 @@
 # AI and data: what leaves the device
 
-Morsel is a local-first app. Everything you log lives in a SwiftData store on the phone, photos live in
+Free Track is a local-first app. Everything you log lives in a SwiftData store on the phone, photos live in
 the app's Application Support folder, and goals/preferences live in UserDefaults. Three actions send data
 off the device, and only when you start them.
 
@@ -8,7 +8,7 @@ off the device, and only when you start them.
 
 | When you... | What leaves the phone | Goes to | Why |
 |---|---|---|---|
-| Snap or pick a meal photo | The photo, downscaled to at most 1600 px on the long edge and JPEG-compressed (~150-400 KB), plus the optional hint text you type ("two slices", "no dressing") and your answer to the clarifying question | Morsel's Claude proxy (a Cloudflare Worker you deploy), which forwards it to the Anthropic API (`api.anthropic.com`). In "Direct" mode the app calls Anthropic itself using an API key stored in the Keychain. | To get a structured calorie/macro estimate back |
+| Snap or pick a meal photo | The photo, downscaled to at most 1600 px on the long edge and JPEG-compressed (~150-400 KB), plus the optional hint text you type ("two slices", "no dressing") and your answer to the clarifying question | Free Track's Claude proxy (a Cloudflare Worker you deploy), which forwards it to the Anthropic API (`api.anthropic.com`). In "Direct" mode the app calls Anthropic itself using an API key stored in the Keychain. | To get a structured calorie/macro estimate back |
 | Scan a barcode | The barcode digits | [Open Food Facts](https://world.openfoodfacts.org) public API | To look up the product's nutrition facts |
 | Search for a food by name | The search text | Open Food Facts public API | To find matching products |
 
@@ -29,7 +29,7 @@ address as any web server does; Open Food Facts sees the app's User-Agent string
 
 For App Store "App Privacy" answers this is declared as **Photos or Videos** and **Other User Content**,
 both "collected, not linked to the user, not used for tracking, purpose: App Functionality". The
-privacy manifest at `Morsel/Resources/PrivacyInfo.xcprivacy` says the same thing in machine-readable
+privacy manifest at `FreeTrack/Resources/PrivacyInfo.xcprivacy` says the same thing in machine-readable
 form. See [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) section 3.
 
 ## Proxy vs. direct mode
@@ -57,7 +57,7 @@ npx wrangler secret put ANTHROPIC_API_KEY      # paste the key from console.anth
 npx wrangler deploy                            # prints https://<name>.<account>.workers.dev
 ```
 
-Paste that URL into Morsel > Settings > AI > Proxy URL. Local development: `npx wrangler dev` and use
+Paste that URL into Free Track > Settings > AI > Proxy URL. Local development: `npx wrangler dev` and use
 `http://<your-lan-ip>:8787` from a phone on the same Wi-Fi (the app only accepts `http(s)` URLs).
 
 ## Model and request shape
@@ -92,4 +92,4 @@ Open Food Facts is free; please respect their [API guidelines](https://openfoodf
 
 Delete the app: all logs, photos and settings go with it (there is no cloud copy). To delete a single
 meal, swipe it in Today or History; its photo is removed from disk at the same time. Photos already
-sent to Anthropic are governed by their retention policy above; Morsel cannot recall them.
+sent to Anthropic are governed by their retention policy above; Free Track cannot recall them.

@@ -1,4 +1,4 @@
-# Morsel — architecture & contributor contract
+# Free Track — architecture & contributor contract
 
 Minimalist iOS calorie logger. SwiftUI, iOS 17+, SwiftData, Swift 5.9 language mode
 (`SWIFT_STRICT_CONCURRENCY=minimal` — do not fight Sendable; `@MainActor` on view models is enough).
@@ -11,17 +11,17 @@ files before coding. Do not add third-party packages.
 
 ## Layout
 ```
-Morsel/App              MorselApp (entry), AppServices (DI wiring), RootView (tabs, + button, add sheet, toast)
-Morsel/Core/Models      NutritionFacts, FoodItem, FoodSource, MealType, LogEntry(@Model), FavoriteFood(@Model), MealEstimate
-Morsel/Core/Services    ServiceProtocols (BarcodeLookupService, FoodSearchService, MealVisionService, ServiceError),
+FreeTrack/App              FreeTrackApp (entry), AppServices (DI wiring), RootView (tabs, + button, add sheet, toast)
+FreeTrack/Core/Models      NutritionFacts, FoodItem, FoodSource, MealType, LogEntry(@Model), FavoriteFood(@Model), MealEstimate
+FreeTrack/Core/Services    ServiceProtocols (BarcodeLookupService, FoodSearchService, MealVisionService, ServiceError),
                         KeychainStore, AppSettings (@Observable, UserDefaults-backed goals/prefs)
-Morsel/Core/Nutrition   UserProfile, GoalCalculator (Mifflin-St Jeor), Units
-Morsel/Core/Persistence ModelContainer.morsel(), ModelContext+Queries (entries(on:), log(_:), dailyCalories…), PhotoStore/ImageResizer
-Morsel/DesignSystem     Theme (Color.m*, Spacing, Radius, MorselFont, Format, Haptics), Components (Card, SectionHeader,
-                        EmptyStateView, PrimaryButtonStyle/.morselPrimary, .morselSecondary, Chip, FloatingAddButton,
+FreeTrack/Core/Nutrition   UserProfile, GoalCalculator (Mifflin-St Jeor), Units
+FreeTrack/Core/Persistence ModelContainer.freeTrack(), ModelContext+Queries (entries(on:), log(_:), dailyCalories…), PhotoStore/ImageResizer
+FreeTrack/DesignSystem     Theme (Color.m*, Spacing, Radius, FreeTrackFont, Format, Haptics), Components (Card, SectionHeader,
+                        EmptyStateView, PrimaryButtonStyle/.freeTrackPrimary, .freeTrackSecondary, Chip, FloatingAddButton,
                         CalorieRing, MacroBar, MacroDot, LoadingOverlay, ConfidenceBadge, FoodRow)
-Morsel/Features/<X>     One folder per feature. Views + view models + feature-private services.
-MorselTests             XCTest unit tests (pure logic only: parsers, mappers, math). No UI tests.
+FreeTrack/Features/<X>     One folder per feature. Views + view models + feature-private services.
+FreeTrackTests             XCTest unit tests (pure logic only: parsers, mappers, math). No UI tests.
 server/claude-proxy     Cloudflare Worker that holds the Anthropic key.
 ```
 
@@ -58,7 +58,7 @@ their own inline controls. Keep it in `Features/Search/ServingEditorView.swift`.
 
 ## Design rules
 - Background `Color.mBackground`, surfaces via `Card {}`, one accent `Color.mAccent`. No borders, no shadows
-  except the floating button/toast. Large rounded numerals (`MorselFont.display/numeral`).
+  except the floating button/toast. Large rounded numerals (`FreeTrackFont.display/numeral`).
 - Minimum taps to log: the happy path must never need more than one confirm tap after capture.
 - Every network step shows `LoadingOverlay`, every failure shows an inline, plain-English message with a retry.
 - Dark mode must work (all colors are dynamic already). Dynamic Type: use system text styles.

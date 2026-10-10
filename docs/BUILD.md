@@ -1,6 +1,6 @@
-# Building Morsel
+# Building Free Track
 
-Morsel is a SwiftUI app for iOS 17+. The Xcode project is **generated** from `project.yml` with
+Free Track is a SwiftUI app for iOS 17+. The Xcode project is **generated** from `project.yml` with
 [XcodeGen](https://github.com/yonaskolb/XcodeGen); there is no checked-in `.xcodeproj`. There are no
 third-party Swift packages, so a build needs nothing but Xcode.
 
@@ -20,23 +20,23 @@ Pick the path that matches what you have.
 brew install xcodegen
 git clone <repo> morsel && cd morsel
 xcodegen generate            # or: make generate
-open Morsel.xcodeproj
+open FreeTrack.xcodeproj
 ```
 
-Then in Xcode: select the `Morsel` scheme, pick an iPhone simulator, press Run. **The Simulator needs
+Then in Xcode: select the `FreeTrack` scheme, pick an iPhone simulator, press Run. **The Simulator needs
 no signing and no Apple account at all.**
 
 Command line equivalents (identical flags to CI):
 
 ```bash
 make build        # Debug build on the newest iPhone simulator
-make test         # build + MorselTests, results in TestResults.xcresult
+make test         # build + FreeTrackTests, results in TestResults.xcresult
 ```
 
 ### Running on a physical iPhone with a free Apple ID
 
 1. Xcode > Settings > Accounts > add your Apple ID. Xcode creates a **Personal Team**.
-2. Select the `Morsel` target > Signing & Capabilities > Team: your Personal Team. Xcode may ask you to
+2. Select the `FreeTrack` target > Signing & Capabilities > Team: your Personal Team. Xcode may ask you to
    change the bundle ID if `com.ashtonkirkman.morsel` is taken on another Personal Team; use
    `com.<you>.morsel` locally and do not commit it (or set `PRODUCT_BUNDLE_IDENTIFIER` via an
    `xcodegen`-ignored `.xcconfig`).
@@ -105,7 +105,7 @@ Requires the $99/year [Apple Developer Program](https://developer.apple.com/prog
    Commit it; it is not a secret. `CODE_SIGN_STYLE: Automatic` is already set.
 2. **App ID.** Certificates, Identifiers & Profiles > Identifiers > register `com.ashtonkirkman.morsel`
    (explicit, no extra capabilities needed).
-3. **App record.** App Store Connect > My Apps > New App > iOS, name "Morsel", the bundle ID above, SKU
+3. **App record.** App Store Connect > My Apps > New App > iOS, name "Free Track", the bundle ID above, SKU
    `morsel`.
 4. **First TestFlight build, via Xcode:** `xcodegen generate`, open the project, Product > Archive,
    then Organizer > Distribute App > TestFlight & App Store. Automatic signing creates the
