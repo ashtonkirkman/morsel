@@ -100,8 +100,13 @@ RootView (tabs + floating + button + toast)
 Every flow view owns its `NavigationStack`, inserts entries, and calls `onLogged(entries)`; the host
 dismisses the sheet and shows the toast. Cancel is `onLogged([])`.
 
-## App icon
+## App icon and brand mark
 
-Accent green `#2F8F5B` background, white ring (stroke 70 px at 1024) with a gap at 12 o'clock and a
-filled dot in the gap: the calorie ring with its "now" marker. No text, no gradient, square corners
-(iOS masks it). Regenerate with `make icon` (`scripts/make_icon.py`).
+"The ring that lets go": one stroke weight, two strokes. The calorie ring, opened at about 1:30, with a
+check mark inside whose long leg climbs up and out through the opening. Ring = tracking, check = logged,
+the leg leaving the loop = progress breaking free. White mark on the accent green tile (`#2F8F5B`, with a
+barely-there radial lift top-left); no text, square corners (iOS masks it). iOS 18 variants: dark = green
+`#4CC38A` mark on a transparent background, tinted = white mark on transparent. Regenerate all three plus
+`Contents.json` with `make icon` (`scripts/make_icon.py`; `--preview p.png` renders a legibility sheet).
+In-app the same geometry is drawn as a vector by `BrandLogo(size:style:)` (`.tile` = the icon, `.mark` =
+accent-tinted stroke on the app background); `BrandMarkShape` and `Mark` in the script must stay in sync.
