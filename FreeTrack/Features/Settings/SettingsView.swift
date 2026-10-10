@@ -29,6 +29,7 @@ struct SettingsView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: Spacing.l) {
+                    accountSection
                     goalsSection
                     profileSection
                     photoSection
@@ -58,6 +59,12 @@ struct SettingsView: View {
         } message: {
             Text("Removes every logged meal, favorite and photo from this device. Your goals and profile stay.")
         }
+    }
+
+    // MARK: - Account
+
+    private var accountSection: some View {
+        AccountSettingsSection()
     }
 
     // MARK: - Goals

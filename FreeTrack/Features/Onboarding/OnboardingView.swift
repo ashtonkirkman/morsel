@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// First-launch flow: welcome → profile → activity & goal → plan. Four pages, lots of whitespace.
+/// First-launch flow: welcome → account (optional) → profile → activity & goal → plan. Five pages, lots of whitespace.
 struct OnboardingView: View {
     @Environment(AppSettings.self) private var settings
 
@@ -8,7 +8,7 @@ struct OnboardingView: View {
     @State private var profile: UserProfile = .placeholder
     @State private var planCalories: Double = 0
 
-    private static let pageCount = 4
+    private static let pageCount = 5
 
     var body: some View {
         @Bindable var settings = settings
@@ -16,25 +16,26 @@ struct OnboardingView: View {
             TabView(selection: $page) {
                 WelcomePage(onStart: { go(to: 1) }, onSkip: finishWithDefaults)
                     .tag(0)
-                ProfilePage(profile: $profile, unitSystem: $settings.unitSystem)
+                AccountPage(onContinue: { go(to: 2) })
                     .tag(1)
-                ActivityPage(profile: $profile)
+                ProfilePage(profile: $profile, unitSystem: $settings.unitSystem)
                     .tag(2)
-                PlanPage(profile: profile, calories: $planCalories)
+                ActivityPage(profile: $profile)
                     .tag(3)
+                PlanPage(profile: profile, calories: $planCalories)
+                    .tag(4)
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .animation(.easeInOut(duration: 0.25), value: page)
 
-            if page > 0 {
+            if page > 1 {
                 footer
             }
         }
         .background(Color.mBackground.ignoresSafeArea())
         .onChange(of: page) { _, newPage in
-            if newPage == 3 { planCalories = GoalCalculator.targetCalories(for: profile) }
+            if newPage == 4 { planCalories = GoalCalculator.targetCalories(for: profile) }
         }
-        .keyboardDoneToolbar()
     }
 
     // MARK: - Footer
@@ -110,16 +111,14 @@ struct WelcomePage: View {
     var body: some View {
         VStack(spacing: Spacing.l) {
             Spacer()
-            HStack(spacing: Spacing.l) {
-                icon("camera.fill")
-                icon("barcode.viewfinder")
-                icon("magnifyingglass")
-            }
+            BrandLogo(size: 112)
+                .accessibilityHidden(true)
             VStack(spacing: Spacing.s) {
                 Text("Free Track")
                     .font(FreeTrackFont.display)
                     .foregroundStyle(Color.mText)
-                Text("Log meals in seconds")
+                Text("Meals, calories and body progress in seconds")
+                    .multilineTextAlignment(.center)
                     .font(FreeTrackFont.title)
                     .foregroundStyle(Color.mTextSecondary)
             }
@@ -135,15 +134,6 @@ struct WelcomePage: View {
             .padding(.bottom, Spacing.xl)
         }
         .padding(.horizontal, Spacing.l)
-    }
-
-    private func icon(_ symbol: String) -> some View {
-        Image(systemName: symbol)
-            .font(.title2)
-            .foregroundStyle(Color.mAccent)
-            .frame(width: 64, height: 64)
-            .background(Color.mAccentSoft, in: Circle())
-            .accessibilityHidden(true)
     }
 }
 
@@ -166,6 +156,9 @@ struct ProfilePage: View {
             .padding(.bottom, Spacing.l)
         }
         .scrollDismissesKeyboard(.interactively)
+        // Keyboard "Done" must be declared inside the page: a `.toolbar` above the paged TabView
+        // does not reach this content, which left the number pad with no way to dismiss.
+        .keyboardDoneToolbar()
     }
 }
 

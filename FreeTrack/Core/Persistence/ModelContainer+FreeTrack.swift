@@ -3,7 +3,7 @@ import SwiftData
 
 extension ModelContainer {
     /// All persisted model types. Keep in sync when adding a new @Model.
-    static let freeTrackSchema = Schema([LogEntry.self, FavoriteFood.self])
+    static let freeTrackSchema = Schema([LogEntry.self, FavoriteFood.self, SyncTombstone.self, BodyScan.self])
 
     static func freeTrack(inMemory: Bool = false) throws -> ModelContainer {
         let config = ModelConfiguration("Morsel", schema: freeTrackSchema, isStoredInMemoryOnly: inMemory)

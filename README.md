@@ -39,6 +39,10 @@ Locally on a Mac: `make screenshots` writes the same set to `./screenshots/`.
 - **Goals from your body stats** using Mifflin-St Jeor (calories, protein, carbs, fat), editable any
   time.
 - **History** with day/week/month Swift Charts and **CSV export**.
+- **Body scans** for weight-loss / muscle-gain progress: three photos (front, T-pose, side) measured entirely
+  on the phone with Apple Vision pose + person segmentation, or optionally Meta's Segment Anything 2.1 via
+  Core ML. Waist, chest, hips, arm, thigh and calf circumferences, body fat (RFM / US Navy), lean mass,
+  symmetry, trends and baseline comparison. Photos never leave the device. See [docs/BODY_SCAN.md](docs/BODY_SCAN.md).
 - **Undo toast** instead of confirmation dialogs; swipe to delete.
 - **Dark mode**, Dynamic Type, VoiceOver labels. One accent colour, no clutter.
 - **Private by design.** Everything is stored on the phone. Only the photo (plus optional hint text)
@@ -67,6 +71,7 @@ Settings > AI. A "Direct" mode with a key on the device exists for personal use.
 | [docs/BUILD.md](docs/BUILD.md) | Building with / without a Mac, device installs, TestFlight |
 | [docs/DESIGN.md](docs/DESIGN.md) | Colour/type/spacing tokens, components, interaction principles, screen map |
 | [docs/AI_AND_DATA.md](docs/AI_AND_DATA.md) | What leaves the device, retention, running the proxy, cost per photo |
+| [docs/ACCOUNTS.md](docs/ACCOUNTS.md) | Optional accounts: sign-in flows, session, sync rules, adding a collection |
 | [docs/RELEASE_CHECKLIST.md](docs/RELEASE_CHECKLIST.md) | App Store readiness: privacy labels, permission strings, AI disclosure, screenshots, tagging |
 | [fastlane/README.md](fastlane/README.md) | `test` and `beta` lanes, prepared for when the account exists |
 
@@ -89,15 +94,16 @@ FreeTrack/
   Core/                  Models (SwiftData), Services (protocols, settings, keychain),
                          Nutrition (Mifflin-St Jeor), Persistence (container, queries, PhotoStore)
   DesignSystem/          Theme tokens + the component set
-  Features/              Today, History, Settings, Onboarding, Add, Snap, Scan, Search
+  Features/              Today, History, Body (BodyScan), Settings, Onboarding, Add, Snap, Scan, Search, Account
   Resources/             Assets.xcassets (icon, accent), PrivacyInfo.xcprivacy
 FreeTrackTests/             XCTest unit tests (pure logic)
 server/claude-proxy/     Cloudflare Worker holding the Anthropic key
+server/account-api/      Cloudflare Worker + D1: sign-in (Apple / Google / Facebook) and sync
 docs/                    Build, design, data and release docs
 scripts/                 make_icon.py (app icon), pick_simulator.py (CI helper)
 fastlane/                test / beta lanes (need a Mac + developer account)
 .github/workflows/       ios.yml
-Makefile                 generate / build / test / icon / lint / proxy
+Makefile                 generate / build / test / icon / lint / proxy / api
 ```
 
 ## Development
@@ -108,6 +114,7 @@ make test       # simulator build + FreeTrackTests, same flags as CI (Mac only)
 make icon       # regenerate the app icon (python3, Pillow optional)
 make lint       # swiftlint, native or via docker
 make proxy      # typecheck server/claude-proxy
+make api        # typecheck + unit-test server/account-api
 ```
 
 Contribution rules (module boundaries, exact view signatures, API conventions) are in

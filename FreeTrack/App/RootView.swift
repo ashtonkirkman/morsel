@@ -9,7 +9,7 @@ struct RootView: View {
     @State private var addRoute: AddRoute?
     @State private var toast: LoggedToast?
 
-    enum Tab: Hashable { case today, history, settings }
+    enum Tab: Hashable { case today, history, body, settings }
 
     var body: some View {
         Group {
@@ -31,12 +31,15 @@ struct RootView: View {
                 HistoryView()
                     .tabItem { Label("History", systemImage: "chart.bar") }
                     .tag(Tab.history)
+                BodyView()
+                    .tabItem { Label("Body", systemImage: "figure.stand") }
+                    .tag(Tab.body)
                 SettingsView()
                     .tabItem { Label("Settings", systemImage: "slider.horizontal.3") }
                     .tag(Tab.settings)
             }
 
-            if tab != .settings {
+            if tab != .settings && tab != .body {
                 FloatingAddButton { addRoute = .menu }
                     .padding(.bottom, 62)
                     .transition(.scale.combined(with: .opacity))
