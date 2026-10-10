@@ -44,8 +44,10 @@ Answer the questionnaire in App Store Connect > App Privacy exactly like this:
 | Do you collect data from this app? | **Yes** |
 | Photos or Videos | Collected. Purpose: App Functionality. **Not** linked to the user. **Not** used for tracking. (Meal photos are sent to the Anthropic API via the proxy for calorie estimation and are not stored server-side by Free Track.) |
 | Other User Content | Collected. Purpose: App Functionality. Not linked, not tracking. (Optional hint text with a photo; barcodes and search terms sent to Open Food Facts.) |
-| Health & Fitness | **Not collected.** Calorie logs, goals and body stats stay on the device (SwiftData + UserDefaults) and are never uploaded. If you later add iCloud sync or Apple Health, revisit this row. |
-| Contact info, Identifiers, Usage data, Diagnostics, Location, Purchases | Not collected. |
+| Health & Fitness | **Collected**, purpose App Functionality, **linked** to the user, not tracking. (Only when the user signs in: calorie log, favorites, goals, body stats and body scans sync to the account API in `server/account-api`.) |
+| Contact Info > Email Address, Name | **Collected**, App Functionality, **linked**, not tracking. (From Apple / Google / Facebook at sign-in; Apple may provide a private relay email.) |
+| Identifiers > User ID | **Collected**, App Functionality, **linked**, not tracking. (Provider user id + Free Track account id.) |
+| Usage data, Diagnostics, Location, Purchases | Not collected. |
 | Tracking (ATT) | **No.** `NSPrivacyTracking` is false; no ad SDKs, no analytics. |
 
 - [ ] Required-reason APIs: UserDefaults `CA92.1`, file timestamps `C617.1`. If a feature starts using
@@ -53,7 +55,14 @@ Answer the questionnaire in App Store Connect > App Privacy exactly like this:
 - [ ] Privacy policy URL (mandatory). Publish `AI_AND_DATA.md` content as a page (GitHub Pages is fine)
       and paste the URL into App Store Connect **and** into Settings > About inside the app.
 - [ ] Third parties named in the policy: Anthropic (photo + hint text), Open Food Facts (barcodes, search
-      text), Cloudflare (the proxy host, sees the request in transit). Link their policies.
+      text), Cloudflare (hosts the proxy and the account API + D1 database), Apple / Google / Facebook
+      (sign-in identity). Link their policies.
+- [ ] Account deletion (guideline 5.1.1(v)): Settings > Account > **Delete account** removes the server
+      account and all synced documents. Mention it in the Review Notes.
+- [ ] Sign in with Apple (guideline 4.8): offered whenever Google / Facebook are; capability enabled on
+      the App ID; `com.apple.developer.applesignin` entitlement generated from `project.yml`.
+- [ ] Account API deployed (`server/account-api/README.md`), its URL compiled into
+      `AccountConfig.defaultBaseURL`, Google OAuth consent screen published and Facebook app in Live mode.
 
 ## 4. AI-generated content disclosure
 

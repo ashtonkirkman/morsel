@@ -1,0 +1,6 @@
+SESSION_SECRET=replace-with-a-long-random-string
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+FACEBOOK_APP_ID=
+FACEBOOK_APP_SECRET=
+APPLE_BUNDLE_ID=com.ashtonkirkman.morsel

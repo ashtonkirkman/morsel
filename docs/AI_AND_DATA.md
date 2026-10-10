@@ -2,7 +2,8 @@
 
 Free Track is a local-first app. Everything you log lives in a SwiftData store on the phone, photos live in
 the app's Application Support folder, and goals/preferences live in UserDefaults. Three actions send data
-off the device, and only when you start them.
+off the device, and only when you start them. A fourth, optional, is signing in to an account, which
+syncs your data to a server you (the developer) run; see [Accounts](#accounts-and-sync-optional).
 
 ## What is sent, where, and why
 
@@ -11,12 +12,34 @@ off the device, and only when you start them.
 | Snap or pick a meal photo | The photo, downscaled to at most 1600 px on the long edge and JPEG-compressed (~150-400 KB), plus the optional hint text you type ("two slices", "no dressing") and your answer to the clarifying question | Free Track's Claude proxy (a Cloudflare Worker you deploy), which forwards it to the Anthropic API (`api.anthropic.com`). In "Direct" mode the app calls Anthropic itself using an API key stored in the Keychain. | To get a structured calorie/macro estimate back |
 | Scan a barcode | The barcode digits | [Open Food Facts](https://world.openfoodfacts.org) public API | To look up the product's nutrition facts |
 | Search for a food by name | The search text | Open Food Facts public API | To find matching products |
+| Sign in (optional) and stay signed in | See [Accounts](#accounts-and-sync-optional): your identity from the provider (email, name, provider user id) and, from then on, your log entries, favorites, goals, body stats and body scans | Free Track's account API (a Cloudflare Worker + D1 database you deploy, `server/account-api`) | To back up and sync across devices |
 
-Nothing else is transmitted. There are no analytics, no crash-reporting SDK, no ads, no account, and
-no push notifications. Your calorie history, goals, body stats and favorites are never uploaded.
+Nothing else is transmitted. There are no analytics, no crash-reporting SDK, no ads, and no push
+notifications. Without an account, your calorie history, goals, body stats and favorites are never
+uploaded.
 
-Identifiers: requests carry no user ID, device ID or advertising ID. The proxy sees the caller's IP
-address as any web server does; Open Food Facts sees the app's User-Agent string.
+Identifiers: photo, barcode and search requests carry no user ID, device ID or advertising ID. The proxy
+sees the caller's IP address as any web server does; Open Food Facts sees the app's User-Agent string.
+Account API requests carry your session token (which identifies your account) and nothing else.
+
+## Accounts and sync (optional)
+
+Signing in is never required. If you do (Settings > Account, or the second onboarding page):
+
+| What | Where it goes | Notes |
+|---|---|---|
+| Your identity from Apple, Google or Facebook: provider user id, email (Apple may give a private relay address), display name, avatar URL | `users` / `identities` tables in the account API's D1 database | The Google / Facebook secrets live only on the Worker; no provider SDK runs in the app. Apple identity tokens are verified against Apple's public keys. |
+| Log entries (name, serving, quantity, nutrition, meal, time, notes, AI confidence), favorites, goals and unit system, body stats (`UserProfile`), body scans | `documents` table, one JSON document per object, keyed by your user id | Meal **photos are never uploaded** by sync; only the entry's text and numbers. |
+| Session: a 1-hour access token and a 30-day refresh token | Keychain on the phone; the refresh token's SHA-256 on the server | Logout revokes the session immediately. |
+
+Sync runs when you sign in, when the app comes to the foreground and a few seconds after each change.
+Conflicts between devices resolve by "last edit wins". Deleting an entry on one device deletes it
+everywhere. **Delete account** (Settings > Account) removes the account and every document from the
+server at once; your phone keeps its local copy. Signing out keeps local data too.
+
+The Worker's Cloudflare account sees standard request logs (IP, timestamp, path). D1 data is stored
+in Cloudflare's infrastructure under your Cloudflare account; see
+[`../server/account-api/README.md`](../server/account-api/README.md) for deployment and retention controls.
 
 ## Retention
 
@@ -26,11 +49,14 @@ address as any web server does; Open Food Facts sees the app's User-Agent string
 | The proxy (your Cloudflare Worker) | Nothing by default. It streams the request through and does not write the image or the reply to storage. Cloudflare keeps standard request logs (IP, timestamp, status) per its own policy. | Cloudflare log retention |
 | Anthropic | API inputs and outputs are subject to Anthropic's [commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy); by default they are not used to train models. Retention for trust-and-safety purposes is time-limited (see their current policy). | Per Anthropic policy |
 | Open Food Facts | Standard web-server logs. Lookups are anonymous. | Per OFF policy |
+| The account API (your Cloudflare Worker + D1), only if you sign in | Identity (email, name, provider id), session hashes, and the synced documents listed above | Until you delete the account in Settings (everything is removed at once) or sign out of every device and the refresh tokens expire (30 days; documents stay until deletion) |
 
-For App Store "App Privacy" answers this is declared as **Photos or Videos** and **Other User Content**,
-both "collected, not linked to the user, not used for tracking, purpose: App Functionality". The
-privacy manifest at `FreeTrack/Resources/PrivacyInfo.xcprivacy` says the same thing in machine-readable
-form. See [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) section 3.
+For App Store "App Privacy" answers this is declared as **Photos or Videos** and **Other User Content**
+("collected, not linked to the user, not used for tracking, purpose: App Functionality") plus, for the
+optional account, **Email Address**, **Name**, **User ID** and **Health & Fitness** ("collected, linked
+to the user, not used for tracking, purpose: App Functionality"). The privacy manifest at
+`FreeTrack/Resources/PrivacyInfo.xcprivacy` says the same thing in machine-readable form. See
+[`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md) section 3.
 
 ## Proxy vs. direct mode
 
@@ -90,6 +116,9 @@ Open Food Facts is free; please respect their [API guidelines](https://openfoodf
 
 ## Your rights / how to delete everything
 
-Delete the app: all logs, photos and settings go with it (there is no cloud copy). To delete a single
-meal, swipe it in Today or History; its photo is removed from disk at the same time. Photos already
-sent to Anthropic are governed by their retention policy above; Free Track cannot recall them.
+Delete the app: all logs, photos and settings go with it. If you signed in, first use Settings > Account
+> **Delete account** so the server copy goes too (deleting the app alone leaves the server copy until
+you delete the account from another device). To delete a single meal, swipe it in Today or History;
+its photo is removed from disk at the same time and, when signed in, the entry is removed from the
+server on the next sync. Photos already sent to Anthropic are governed by their retention policy above;
+Free Track cannot recall them.

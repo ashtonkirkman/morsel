@@ -1,0 +1,31 @@
+name = "freetrack-account-api"
+main = "src/index.ts"
+compatibility_date = "2025-09-01"
+workers_dev = true
+
+# Secrets (never put these in this file):
+#   npx wrangler secret put SESSION_SECRET          # long random string; signs app session tokens
+#   npx wrangler secret put GOOGLE_CLIENT_ID
+#   npx wrangler secret put GOOGLE_CLIENT_SECRET
+#   npx wrangler secret put FACEBOOK_APP_ID
+#   npx wrangler secret put FACEBOOK_APP_SECRET
+#   npx wrangler secret put APPLE_BUNDLE_ID         # optional; defaults to com.ashtonkirkman.morsel
+
+[vars]
+# Custom URL scheme the iOS app registers (project.yml CFBundleURLTypes). The OAuth callback
+# redirects to <APP_SCHEME>://auth/callback.
+APP_SCHEME = "freetrack"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "freetrack"
+# Run `npx wrangler d1 create freetrack` once and paste the printed database_id here.
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+# Optional per-IP rate limit on the auth endpoints: 20 requests per 60 s. The Worker runs fine
+# without it; uncomment once you are ready to enable it (period must be 10 or 60).
+# [[ratelimits]]
+# name = "RATE_LIMITER"
+# namespace_id = "1002"
+# simple = { limit = 20, period = 60 }

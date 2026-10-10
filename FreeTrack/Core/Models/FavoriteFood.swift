@@ -23,6 +23,8 @@ final class FavoriteFood {
     var useCount: Int
     /// Quantity (servings) the user usually logs.
     var defaultQuantity: Double
+    /// Last local modification; drives last-writer-wins sync. Defaulted so existing stores migrate.
+    var updatedAt: Date = Date.now
 
     init(food: FoodItem, defaultQuantity: Double = 1, now: Date = .now) {
         self.id = UUID()
@@ -58,5 +60,6 @@ final class FavoriteFood {
     func markUsed(now: Date = .now) {
         useCount += 1
         lastUsedAt = now
+        updatedAt = now
     }
 }

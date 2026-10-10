@@ -6,6 +6,7 @@
 #   make icon       Regenerate FreeTrack/Resources/.../AppIcon-1024.png
 #   make lint       SwiftLint (native binary if installed, otherwise docker)
 #   make proxy      Typecheck server/claude-proxy
+#   make api        Typecheck + unit-test server/account-api
 #   make clean      Remove generated project + build products
 
 SHELL := /bin/bash
@@ -21,7 +22,7 @@ XCB_FLAGS    := -project $(PROJECT) -scheme $(SCHEME) -destination "$(DESTINATIO
 # Pipe through xcpretty when present, fall back to raw output.
 PRETTY       := $(shell command -v xcpretty >/dev/null 2>&1 && echo "| xcpretty --color --simple" || echo "")
 
-.PHONY: help generate build test icon lint proxy clean
+.PHONY: help generate build test icon lint proxy api clean
 
 help:
 	@grep -E '^#   make' Makefile | sed 's/^#   //'
@@ -59,6 +60,11 @@ proxy:
 	@if [ -f server/claude-proxy/package.json ]; then \
 		cd server/claude-proxy && ( [ -f package-lock.json ] && npm ci || npm install ) && npx tsc --noEmit; \
 	else echo "server/claude-proxy not present yet"; fi
+
+api:
+	@if [ -f server/account-api/package.json ]; then \
+		cd server/account-api && ( [ -f package-lock.json ] && npm ci || npm install ) && npx tsc --noEmit && npm test; \
+	else echo "server/account-api not present yet"; fi
 
 clean:
 	rm -rf $(PROJECT) $(RESULT) build DerivedData

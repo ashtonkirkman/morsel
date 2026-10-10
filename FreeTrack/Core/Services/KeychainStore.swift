@@ -1,12 +1,16 @@
 import Foundation
 import Security
 
-/// Minimal Keychain wrapper for secrets (Claude API key). Generic-password class, this app only.
+/// Minimal Keychain wrapper for secrets (Claude API key, account session). Generic-password class, this app only.
 struct KeychainStore: Sendable {
     enum Key: String {
         case claudeAPIKey = "com.ashtonkirkman.morsel.claudeAPIKey"
         /// Optional shared secret the Cloudflare proxy checks (`x-morsel-token`).
         case proxyToken = "com.ashtonkirkman.morsel.proxyToken"
+        /// Account API session: short-lived HS256 access JWT.
+        case accessToken = "com.ashtonkirkman.morsel.accessToken"
+        /// Account API session: 30-day rotating refresh token.
+        case refreshToken = "com.ashtonkirkman.morsel.refreshToken"
     }
 
     static let shared = KeychainStore()

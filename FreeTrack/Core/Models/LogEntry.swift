@@ -30,6 +30,8 @@ final class LogEntry {
     var notes: String?
     /// 0...1 confidence for AI estimates; nil for database/manual entries.
     var confidence: Double?
+    /// Last local modification; drives last-writer-wins sync. Defaulted so existing stores migrate.
+    var updatedAt: Date = Date.now
 
     init(id: UUID = UUID(),
          loggedAt: Date = .now,
