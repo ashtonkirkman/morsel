@@ -2,8 +2,8 @@ import XCTest
 @testable import FreeTrack
 
 final class GoalCalculatorTests: XCTestCase {
-    /// Male, 30 y, 180 cm, 80 kg — a textbook Mifflin–St Jeor example.
-    private let male = UserProfile(sex: .male, age: 30, heightCm: 180, weightKg: 80,
+    /// Male, 30 y (birth date 30 years ago today), 180 cm, 80 kg — a textbook Mifflin–St Jeor example.
+    private let male = UserProfile(sex: .male, birthDate: UserProfile.birthDate(forAge: 30), heightCm: 180, weightKg: 80,
                                    activity: .moderate, goal: .maintain)
 
     func testBMRKnownProfile() {
@@ -38,12 +38,12 @@ final class GoalCalculatorTests: XCTestCase {
 
     func testLoseFloorsAtSafeMinimum() {
         // Small sedentary female: BMR 926.5 → maintenance 1111.8 → -500 = 611.8, floored to 1200.
-        let small = UserProfile(sex: .female, age: 60, heightCm: 150, weightKg: 45,
+        let small = UserProfile(sex: .female, birthDate: UserProfile.birthDate(forAge: 60), heightCm: 150, weightKg: 45,
                                 activity: .sedentary, goal: .lose)
         XCTAssertEqual(GoalCalculator.targetCalories(for: small), 1200, accuracy: 0.001)
 
         // Male floor is 1500.
-        let smallMale = UserProfile(sex: .male, age: 70, heightCm: 155, weightKg: 50,
+        let smallMale = UserProfile(sex: .male, birthDate: UserProfile.birthDate(forAge: 70), heightCm: 155, weightKg: 50,
                                     activity: .sedentary, goal: .lose)
         // BMR = 500 + 968.75 - 350 + 5 = 1123.75 → *1.2 = 1348.5 → -500 = 848.5 → floor 1500
         XCTAssertEqual(GoalCalculator.targetCalories(for: smallMale), 1500, accuracy: 0.001)

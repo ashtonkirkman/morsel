@@ -26,16 +26,38 @@ struct ProfileFieldsView: View {
             }
             .padding(.vertical, 6)
             separator
-            SettingsNumberField(title: "Age", unit: "yrs", value: ageBinding)
+            birthDateField
             separator
             heightFields
             separator
             weightField
         }
-        .id(unitSystem)
+        // No `.id(unitSystem)` here: the height/weight rows already get fresh identities from their
+        // `switch`, and re-creating the whole stack dropped focus (and the keyboard) on every toggle.
     }
 
     private var separator: some View { Divider().overlay(Color.mSeparator) }
+
+    // MARK: - Date of birth
+
+    /// Compact picker: tapping the date opens the calendar popover. Same row metrics as `SettingsNumberField`.
+    private var birthDateField: some View {
+        HStack(spacing: Spacing.s) {
+            Text("Date of birth")
+                .font(FreeTrackFont.body)
+                .foregroundStyle(Color.mText)
+            Spacer()
+            DatePicker("Date of birth",
+                       selection: birthDateBinding,
+                       in: UserProfile.birthDateRange(),
+                       displayedComponents: .date)
+                .datePickerStyle(.compact)
+                .labelsHidden()
+                .tint(Color.mAccent)
+                .accessibilityLabel("Date of birth")
+        }
+        .padding(.vertical, 6)
+    }
 
     // MARK: - Height / weight
 
@@ -67,9 +89,11 @@ struct ProfileFieldsView: View {
 
     // MARK: - Bindings
 
-    private var ageBinding: Binding<Double> {
-        Binding(get: { Double(profile.age) },
-                set: { profile.age = max(1, min(120, Int($0.rounded()))) })
+    /// Shows 30 years ago until the user picks a date; stores midnight so the time of day never
+    /// nudges the derived age.
+    private var birthDateBinding: Binding<Date> {
+        Binding(get: { profile.birthDate ?? UserProfile.defaultBirthDate() },
+                set: { profile.birthDate = Calendar.current.startOfDay(for: $0) })
     }
 
     private var feetBinding: Binding<Double> {
@@ -95,7 +119,7 @@ struct ProfileFieldsView: View {
 }
 
 extension UserProfile {
-    /// Starting point for the editors before the user has entered anything.
-    static let placeholder = UserProfile(sex: .female, age: 30, heightCm: 168, weightKg: 68,
-                                         activity: .moderate, goal: .maintain)
+    /// Starting point for the editors before the user has entered anything (age 30 today).
+    static let placeholder = UserProfile(sex: .female, birthDate: UserProfile.defaultBirthDate(),
+                                         heightCm: 168, weightKg: 68, activity: .moderate, goal: .maintain)
 }
