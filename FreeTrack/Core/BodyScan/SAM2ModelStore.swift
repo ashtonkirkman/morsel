@@ -16,7 +16,7 @@ final class SAM2ModelStore {
     }
 
     static let shared = SAM2ModelStore()
-    static let defaultVariant: SAM2Model.Variant = .small
+    nonisolated static let defaultVariant: SAM2Model.Variant = .small
 
     let variant: SAM2Model.Variant
     private(set) var state: State = .idle

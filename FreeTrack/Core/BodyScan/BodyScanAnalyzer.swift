@@ -37,7 +37,8 @@ struct BodyScanAnalyzer {
 
     /// Picks SAM 2 when the setting is on and the model is installed; otherwise Apple Vision only.
     @MainActor
-    static func make(useSAM2: Bool, store: SAM2ModelStore = .shared) -> BodyScanAnalyzer {
+    static func make(useSAM2: Bool, store: SAM2ModelStore? = nil) -> BodyScanAnalyzer {
+        let store = store ?? SAM2ModelStore.shared
         if useSAM2, let model = store.model() {
             return BodyScanAnalyzer(primary: SAM2Segmenter(model: model))
         }

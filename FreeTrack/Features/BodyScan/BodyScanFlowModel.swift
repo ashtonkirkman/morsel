@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import SwiftData
+import SwiftUI
 import UIKit
 
 /// State machine for a new scan: setup (weight) → three poses → review → save.
