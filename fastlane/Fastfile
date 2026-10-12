@@ -158,7 +158,7 @@ platform :ios do
   private_lane :ensure_capabilities do |options|
     require "spaceship"
     Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: options[:api_key])
-    wanted = { "SIGN_IN_WITH_APPLE" => "Sign In with Apple" }
+    wanted = { "APPLE_ID_AUTH" => "Sign In with Apple" }  # App Store Connect API name for the capability
     added = false
     begin
       bundle = Spaceship::ConnectAPI::BundleId.find(BUNDLE_ID)
