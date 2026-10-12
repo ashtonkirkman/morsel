@@ -168,7 +168,9 @@ platform :ios do
         if existing.include?(type)
           UI.message("App ID capability already enabled: #{label}")
         else
-          bundle.create_capability(type)
+          # Sign In with Apple must be configured as a primary App ID (the portal's default tick).
+          settings = type == "APPLE_ID_AUTH" ? [{ key: "APPLE_ID_AUTH_APP_CONSENT", options: [{ key: "PRIMARY_APP_CONSENT" }] }] : []
+          bundle.create_capability(type, settings: settings)
           UI.success("Enabled App ID capability: #{label}")
           added = true
         end
