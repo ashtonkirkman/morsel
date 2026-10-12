@@ -68,6 +68,15 @@ platform :ios do
 
     ensure_app_records_exist(api_key: api_key)
 
+    # The app entitles com.apple.developer.applesignin (project.yml). A profile generated before
+    # that capability was enabled on the App ID fails at archive time, so enable it through the
+    # API and, when it was just added, make match regenerate the profile (needs readonly=false).
+    capability_added = ensure_capabilities(api_key: api_key)
+    force_profiles = capability_added || ENV["MATCH_FORCE"] == "true"
+    if force_profiles && match_readonly
+      UI.important("Profile must be regenerated but MATCH_READONLY=true; match will not be able to renew it.")
+    end
+
     # Fetch (or on the very first run, create) the distribution cert + App Store profile.
     match(
       type: "appstore",
@@ -78,6 +87,7 @@ platform :ios do
       git_url: ENV["MATCH_GIT_URL"],
       git_branch: ENV.fetch("MATCH_GIT_BRANCH", "main"),
       readonly: match_readonly,
+      force: force_profiles && !match_readonly,
       skip_docs: true
     )
     profile_name = ENV["sigh_#{BUNDLE_ID}_appstore_profile-name"]
@@ -141,6 +151,33 @@ platform :ios do
     body = text.gsub(/\s+/, "")
     UI.user_error!("ASC_KEY_CONTENT does not look like a .p8 key") unless body.match?(/\A[A-Za-z0-9+\/=]+\z/)
     "-----BEGIN PRIVATE KEY-----\n#{body.scan(/.{1,64}/).join("\n")}\n-----END PRIVATE KEY-----"
+  end
+
+  # Capabilities the entitlements file needs. Returns true when one had to be enabled just now
+  # (the existing provisioning profile is then stale and must be regenerated).
+  private_lane :ensure_capabilities do |options|
+    require "spaceship"
+    Spaceship::ConnectAPI.token = Spaceship::ConnectAPI::Token.from(hash: options[:api_key])
+    wanted = { "SIGN_IN_WITH_APPLE" => "Sign In with Apple" }
+    added = false
+    begin
+      bundle = Spaceship::ConnectAPI::BundleId.find(BUNDLE_ID)
+      UI.user_error!("App ID #{BUNDLE_ID} not found in the developer portal") if bundle.nil?
+      existing = bundle.get_capabilities.map { |c| c.capability_type.to_s }
+      wanted.each do |type, label|
+        if existing.include?(type)
+          UI.message("App ID capability already enabled: #{label}")
+        else
+          bundle.create_capability(type)
+          UI.success("Enabled App ID capability: #{label}")
+          added = true
+        end
+      end
+    rescue StandardError => e
+      UI.important("Could not enable App ID capabilities automatically: #{e.message}")
+      UI.important("developer.apple.com > Certificates, Identifiers & Profiles > Identifiers > #{BUNDLE_ID} > tick #{wanted.values.join(', ')} > Save, then re-run with MATCH_FORCE=true")
+    end
+    added
   end
 
   # Register the App ID in the Developer Portal through the API key (allowed), and check that the
