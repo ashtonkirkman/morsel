@@ -15,7 +15,7 @@ struct BodyScanIntroSheet: View {
                         Text("Body scans stay on your phone")
                             .font(FreeTrackFont.title)
                             .foregroundStyle(Color.mText)
-                        Text("Free Track measures you from three photos using Apple's on-device vision models. Nothing is uploaded to analyse them.")
+                        Text("Free Track measures you from up to three photos using Apple's on-device vision models. Nothing is uploaded to analyse them.")
                             .font(FreeTrackFont.body)
                             .foregroundStyle(Color.mTextSecondary)
                     }
@@ -25,8 +25,10 @@ struct BodyScanIntroSheet: View {
                           "Lengths come from detected joints, circumferences from your silhouette. Expect ±5–10%. The value is in the trend: scan the same way each time.")
                     point("heart.text.square", "Not medical advice",
                           "Body fat is estimated with the Relative Fat Mass formula from your waist and height. It is a rough guide, not a diagnosis.")
-                    point("camera", "Plain background, full body",
-                          "Prop the phone at hip height 2–3 m away, stand against a plain wall in fitted clothes, and use the self-timer.")
+                    point("camera", "Plain background, head to toes if you can",
+                          "Prop the phone at hip height 2–3 m away, stand against a plain wall in fitted clothes, and use the self-timer. A head-to-hips or head-and-shoulders photo works too — you just get fewer numbers.")
+                    point("photo.on.rectangle.angled", "Old photos welcome",
+                          "Add photos from your library, from any angle, to compare how you looked then with how you look now. A full-body front photo can even become a scan dated to when it was taken.")
                 }
                 .padding(Spacing.m)
                 .padding(.bottom, Spacing.xl)

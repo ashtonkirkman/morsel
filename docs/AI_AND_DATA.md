@@ -11,7 +11,7 @@ syncs your data to a server you (the developer) run; see [Accounts](#accounts-an
 |---|---|---|---|
 | Snap or pick a meal photo | The photo, downscaled to at most 1600 px on the long edge and JPEG-compressed (~150-400 KB), plus the optional hint text you type ("two slices", "no dressing") and your answer to the clarifying question | Free Track's Claude proxy (a Cloudflare Worker you deploy), which forwards it to the Anthropic API (`api.anthropic.com`). In "Direct" mode the app calls Anthropic itself using an API key stored in the Keychain. | To get a structured calorie/macro estimate back |
 | Scan a barcode | The barcode digits | [Open Food Facts](https://world.openfoodfacts.org) public API | To look up the product's nutrition facts |
-| Search for a food by name | The search text | Open Food Facts public API | To find matching products |
+| Search for a food by name | The search text | Open Food Facts search API (search.openfoodfacts.org; legacy world/us.openfoodfacts.org as fallback) | To find matching products. Built-in whole foods (fruit, vegetables, staples) are matched on the device and never leave it. |
 | Sign in (optional) and stay signed in | See [Accounts](#accounts-and-sync-optional): your identity from the provider (email, name, provider user id) and, from then on, your log entries, favorites, goals, body stats and body scans | Free Track's account API (a Cloudflare Worker + D1 database you deploy, `server/account-api`) | To back up and sync across devices |
 
 Nothing else is transmitted. There are no analytics, no crash-reporting SDK, no ads, and no push

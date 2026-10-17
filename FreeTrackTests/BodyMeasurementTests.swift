@@ -72,6 +72,34 @@ enum SyntheticFigure {
         .leftAnkle: (900, 1886), .rightAnkle: (900, 1886)
     ]
 
+    /// Front points with the legs out of frame (photo cropped at the hips).
+    static var upperBodyPoints: [BodyJoint: (Double, Double)] {
+        var p = frontPoints
+        for joint in [BodyJoint.leftKnee, .rightKnee, .leftAnkle, .rightAnkle] { p[joint] = nil }
+        return p
+    }
+
+    /// Nose and shoulders only (a selfie-style photo), elbows visible, no wrists.
+    static var headAndShouldersPoints: [BodyJoint: (Double, Double)] {
+        [.nose: (900, 240), .leftShoulder: (1150, 424), .rightShoulder: (650, 424), .leftElbow: (1150, 744), .rightElbow: (650, 744)]
+    }
+
+    /// Mask of the front figure cut off below row `y` (what a cropped photo's segmentation looks like).
+    static func croppedFrontMask(below y: Int) -> BodyMask {
+        var m = frontMask(tPose: false)
+        m.fillRect(x0: 0, x1: width, y0: y, y1: height, value: 0)
+        return m
+    }
+
+    static func upperBody() -> PoseObservation {
+        PoseObservation(poseType: .frontArmsDown, keypoints: keypoints(upperBodyPoints), mask: croppedFrontMask(below: 1150), framing: .upperBody)
+    }
+
+    static func headAndShoulders() -> PoseObservation {
+        PoseObservation(poseType: .frontArmsDown, keypoints: keypoints(headAndShouldersPoints), mask: croppedFrontMask(below: 800),
+                        framing: .headAndShoulders)
+    }
+
     static func front(withMask: Bool = true) -> PoseObservation {
         PoseObservation(poseType: .frontArmsDown, keypoints: keypoints(frontPoints), mask: withMask ? frontMask(tPose: false) : nil)
     }
@@ -317,15 +345,127 @@ final class BodyMeasurementTests: XCTestCase {
         XCTAssertEqual(PoseValidator.validate(front, poseType: .frontArmsOut).message, PoseValidator.mismatchMessage(for: .frontArmsOut))
     }
 
-    func testPoseValidatorRequiresFullBody() {
-        var points = SyntheticFigure.frontPoints
-        points[.leftAnkle] = nil
-        points[.rightAnkle] = nil
-        let result = PoseValidator.validate(SyntheticFigure.keypoints(points), poseType: .frontArmsDown)
-        XCTAssertFalse(result.isFullBody)
-        XCTAssertEqual(result.message, PoseValidator.notFullBodyMessage)
+    func testPoseValidatorDetectsFraming() {
+        let full = PoseValidator.validate(SyntheticFigure.keypoints(SyntheticFigure.frontPoints), poseType: .frontArmsDown)
+        XCTAssertEqual(full.framing, .fullBody)
+        XCTAssertTrue(full.isFullBody)
+
+        // No ankles: head to hips. Still a valid arms-down photo, no warning.
+        let upper = PoseValidator.validate(SyntheticFigure.keypoints(SyntheticFigure.upperBodyPoints), poseType: .frontArmsDown)
+        XCTAssertEqual(upper.framing, .upperBody)
+        XCTAssertFalse(upper.isFullBody)
+        XCTAssertTrue(upper.poseMatched)
+        XCTAssertNil(upper.message)
+
+        // Head and shoulders only, no wrists: accepted as arms-down because the person faces the camera,
+        // but a T-pose cannot be confirmed without wrists.
+        let head = PoseValidator.validate(SyntheticFigure.keypoints(SyntheticFigure.headAndShouldersPoints), poseType: .frontArmsDown)
+        XCTAssertEqual(head.framing, .headAndShoulders)
+        XCTAssertTrue(head.poseMatched)
+        XCTAssertFalse(PoseValidator.validate(SyntheticFigure.keypoints(SyntheticFigure.headAndShouldersPoints), poseType: .frontArmsOut).poseMatched)
+
+        // A side view of the upper body only needs narrow shoulders.
+        var sideUpper = SyntheticFigure.sidePoints
+        for joint in [BodyJoint.leftKnee, .rightKnee, .leftAnkle, .rightAnkle] { sideUpper[joint] = nil }
+        XCTAssertTrue(PoseValidator.validate(SyntheticFigure.keypoints(sideUpper), poseType: .sideLeft).poseMatched)
+
+        // Ankles Vision guessed below the bottom edge of a cropped photo don't make it a full-body photo.
+        var offFrame = SyntheticFigure.frontPoints
+        offFrame[.leftAnkle] = (1050, 2100)
+        offFrame[.rightAnkle] = (750, 2100)
+        XCTAssertEqual(PoseValidator.validate(SyntheticFigure.keypoints(offFrame), poseType: .frontArmsDown).framing, .upperBody)
+
+        // Without the head and shoulders there is nothing to work with.
+        var noShoulders = SyntheticFigure.frontPoints
+        noShoulders[.leftShoulder] = nil
+        let missing = PoseValidator.validate(SyntheticFigure.keypoints(noShoulders), poseType: .frontArmsDown)
+        XCTAssertNil(missing.framing)
+        XCTAssertEqual(missing.message, PoseValidator.headAndShouldersMessage)
         let empty = PoseValidator.validate(BodyKeypoints(imageWidth: 10, imageHeight: 10, joints: []), poseType: .frontArmsDown)
         XCTAssertEqual(empty.message, PoseValidator.noPoseMessage)
+    }
+
+    func testBodyScaleEstimatesFromWhatIsVisible() {
+        let full = PoseValidator.bodyScale(SyntheticFigure.keypoints(SyntheticFigure.frontPoints))
+        XCTAssertEqual(full, 1646, accuracy: 0.01)
+        // Nose → hip (796 px) × 2.55 × 0.885 ≈ 1796: the right order of magnitude for threshold tests.
+        let upper = PoseValidator.bodyScale(SyntheticFigure.keypoints(SyntheticFigure.upperBodyPoints))
+        XCTAssertEqual(upper / full, 1, accuracy: 0.15)
+        let head = PoseValidator.bodyScale(SyntheticFigure.keypoints(SyntheticFigure.headAndShouldersPoints))
+        XCTAssertEqual(head / full, 1.2, accuracy: 0.2)
+    }
+
+    func testKeypointsRestrictedToFramingDropExtrapolatedJoints() {
+        let kp = SyntheticFigure.keypoints(SyntheticFigure.frontPoints)
+        let upper = kp.restricted(to: .upperBody)
+        XCTAssertNil(upper[.leftKnee])
+        XCTAssertNil(upper[.rightAnkle])
+        XCTAssertNotNil(upper[.leftHip])
+        let head = kp.restricted(to: .headAndShoulders)
+        XCTAssertNil(head[.leftHip])
+        XCTAssertNotNil(head[.leftWrist])
+        XCTAssertEqual(kp.restricted(to: .fullBody), kp)
+    }
+
+    // MARK: - Partial framing
+
+    func testUpperBodyScanScalesFromProportionsAtLowConfidence() throws {
+        let m = BodyMeasurementEngine.measure(SyntheticFigure.input(front: SyntheticFigure.upperBody(), tPose: nil, side: nil))
+        XCTAssertEqual(m.scaleSource, "noseHipEstimate")
+        XCTAssertEqual(m.framing, .upperBody)
+        // Nose → hip is 796 px; height ≈ 796 × 2.55 cm → 11.28 px/cm instead of the true 10.
+        XCTAssertEqual(try XCTUnwrap(m.frontPxPerCm), 796 * 2.55 / 180, accuracy: 0.001)
+        XCTAssertNotNil(m.value(.waistCircumference))
+        XCTAssertNotNil(m.value(.bodyFatPercent))
+        XCTAssertNotNil(m.value(.shoulderWidth))
+        XCTAssertNil(m.value(.leftThigh), "legs are not in the photo")
+        XCTAssertNil(m.value(.leftCalfCircumference))
+        XCTAssertNil(m.value(.torsoToLegRatio))
+        XCTAssertEqual(m[.shoulderWidth]?.confidence, .low, "population-proportion scale caps everything at low")
+        XCTAssertEqual(m[.waistCircumference]?.confidence, .low)
+    }
+
+    func testUpperBodyScanUsesReferenceShouldersFromEarlierScan() throws {
+        var input = SyntheticFigure.input(front: SyntheticFigure.upperBody(), tPose: nil, side: nil)
+        input.referenceShoulderWidthCm = 50 // what the full-body figure measures
+        let m = BodyMeasurementEngine.measure(input)
+        XCTAssertEqual(m.scaleSource, "referenceShoulders")
+        XCTAssertEqual(try XCTUnwrap(m.frontPxPerCm), 10, accuracy: 0.001)
+        let full = BodyMeasurementEngine.measure(SyntheticFigure.input(tPose: nil, side: nil))
+        XCTAssertEqual(try XCTUnwrap(m.value(.waistCircumference)), try XCTUnwrap(full.value(.waistCircumference)), accuracy: 0.01)
+        XCTAssertEqual(m[.shoulderWidth]?.confidence, .medium, "a reference scale is never better than medium")
+    }
+
+    func testPartialTPoseIsCalibratedByFullBodyFrontInSameScan() throws {
+        var points = SyntheticFigure.tPosePoints
+        for joint in [BodyJoint.leftKnee, .rightKnee, .leftAnkle, .rightAnkle] { points[joint] = nil }
+        let partialT = PoseObservation(poseType: .frontArmsOut, keypoints: SyntheticFigure.keypoints(points),
+                                       mask: SyntheticFigure.frontMask(tPose: true), framing: .upperBody)
+        let m = BodyMeasurementEngine.measure(SyntheticFigure.input(tPose: partialT, side: nil))
+        XCTAssertEqual(m.scaleSource, "mask", "the front photo still sets the headline scale")
+        XCTAssertEqual(m.framing, .fullBody)
+        // Arm span comes from the T-pose, scaled by the front photo's 50 cm shoulder width → 10 px/cm.
+        XCTAssertEqual(try XCTUnwrap(m.value(.armSpan)), 166, accuracy: 0.05)
+        XCTAssertEqual(m[.armSpan]?.confidence, .medium)
+        XCTAssertNotNil(m.value(.leftThigh), "legs still come from the full-body front photo")
+    }
+
+    func testHeadAndShouldersScanGivesShoulderWidthOnly() {
+        let m = BodyMeasurementEngine.measure(SyntheticFigure.input(front: SyntheticFigure.headAndShoulders(), tPose: nil, side: nil))
+        XCTAssertEqual(m.scaleSource, "shoulderEstimate")
+        XCTAssertEqual(m.framing, .headAndShoulders)
+        XCTAssertNotNil(m.value(.shoulderWidth))
+        XCTAssertNil(m.value(.waistCircumference))
+        XCTAssertNil(m.value(.bodyFatPercent))
+        XCTAssertNil(m.value(.torso))
+    }
+
+    func testSideViewWithoutHipsHasNoScale() {
+        var points = SyntheticFigure.sidePoints
+        for joint in [BodyJoint.leftHip, .rightHip, .leftKnee, .rightKnee, .leftAnkle, .rightAnkle] { points[joint] = nil }
+        let obs = PoseObservation(poseType: .sideLeft, keypoints: SyntheticFigure.keypoints(points), mask: nil, framing: .headAndShoulders)
+        XCTAssertNil(BodyMeasurementEngine.scale(for: obs, heightCm: 180, referenceShoulderWidthCm: 50),
+                     "a foreshortened side shoulder span must not be used as a scale")
     }
 
     func testMaskQualityHighForMatchingMask() {

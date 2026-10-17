@@ -158,13 +158,18 @@ struct FoodSearchFlowView: View {
                     .listRowInsets(EdgeInsets())
             }
         }
-        if !model.results.isEmpty {
-            Section("Results") {
-                ForEach(model.results) { food in
-                    NavigationLink(value: SearchRoute.serving(food: food, quantity: 1, favoriteID: nil)) {
-                        FoodRow(food: food)
-                    }
-                    .contextMenu { addToFavoritesButton(food) }
+        if !model.basicResults.isEmpty {
+            Section("Basic foods") {
+                ForEach(model.basicResults) { food in
+                    resultRow(food)
+                }
+            }
+            .listRowBackground(Color.mSurface)
+        }
+        if !model.productResults.isEmpty {
+            Section("Products") {
+                ForEach(model.productResults) { food in
+                    resultRow(food)
                 }
             }
             .listRowBackground(Color.mSurface)
@@ -197,6 +202,13 @@ struct FoodSearchFlowView: View {
             }
             .listRowBackground(Color.mSurface)
         }
+    }
+
+    private func resultRow(_ food: FoodItem) -> some View {
+        NavigationLink(value: SearchRoute.serving(food: food, quantity: 1, favoriteID: nil)) {
+            FoodRow(food: food)
+        }
+        .contextMenu { addToFavoritesButton(food) }
     }
 
     private func addToFavoritesButton(_ food: FoodItem) -> some View {

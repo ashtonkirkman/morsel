@@ -1,22 +1,29 @@
 import SwiftData
 import SwiftUI
 
-/// Body tab: latest scan summary with deltas vs. baseline, trend chart, scan list, "New scan".
+/// Body tab: latest scan summary with deltas vs. baseline, progress photos (imported + scan photos, with
+/// before/after compare), trend chart, scan list, "New scan".
 @MainActor
 struct BodyView: View {
     @Environment(AppSettings.self) private var settings
     @Environment(\.modelContext) private var context
 
     @State private var scans: [BodyScan] = []
+    @State private var photos: [ProgressPhoto] = []
     @State private var loadError: String?
     @State private var showFlow = false
     @State private var showIntro = false
     @State private var showSettings = false
+    @State private var showImport = false
+    @State private var showCompare = false
+    @State private var selectedPhoto: ProgressTimelineItem?
+    @State private var importScan: ImportedScanPhoto?
     @State private var chartMetric: BodyMetric = .waistCircumference
     @AppStorage("bodyScanIntroSeen") private var introSeen = false
 
     private var latest: BodyScan? { scans.first }
     private var baseline: BodyScan? { scans.first { $0.isBaseline } }
+    private var timeline: [ProgressTimelineItem] { ProgressTimelineItem.timeline(photos: photos, scans: scans) }
 
     var body: some View {
         NavigationStack {
@@ -26,8 +33,10 @@ struct BodyView: View {
                         errorCard(loadError)
                     } else if scans.isEmpty {
                         emptyState
+                        photosCard
                     } else {
                         if let latest { BodyScanSummaryCard(scan: latest, baseline: baseline, unitSystem: settings.unitSystem) }
+                        photosCard
                         chartCard
                         scansList
                         newScanButton
@@ -63,6 +72,21 @@ struct BodyView: View {
         .sheet(isPresented: $showSettings) {
             BodyScanSettingsView()
         }
+        .sheet(isPresented: $showImport, onDismiss: load) {
+            ProgressPhotoImportView { _ in showImport = false }
+        }
+        .sheet(isPresented: $showCompare) {
+            ProgressPhotoCompareView(items: timeline)
+        }
+        .sheet(item: $selectedPhoto, onDismiss: load) { item in
+            ProgressPhotoDetailView(item: item, onMeasure: { image in measure(item, image: image) }, onChanged: load)
+        }
+        .sheet(item: $importScan, onDismiss: load) { photo in
+            BodyScanFlowView(importing: photo) { scan in
+                if scan != nil { removeSourcePhoto(photo) }
+                importScan = nil
+            }
+        }
     }
 
     // MARK: - Sections
@@ -71,7 +95,7 @@ struct BodyView: View {
         VStack(spacing: Spacing.m) {
             EmptyStateView(symbol: "figure.stand",
                            title: "No body scans yet",
-                           message: "Three photos, analysed on this phone, give you waist, body fat, arm and thigh measurements you can track over time.")
+                           message: "Up to three photos, analysed on this phone, give you waist, body fat, arm and thigh measurements you can track over time. Head-to-toe gives the most; head-and-shoulders works too.")
             newScanButton
             Text("Photos never leave your phone. Only the numbers are kept — and only synced if you turn on an account.")
                 .font(FreeTrackFont.caption)
@@ -84,6 +108,13 @@ struct BodyView: View {
     private var newScanButton: some View {
         Button(action: startScan) { Label("New scan", systemImage: "camera.viewfinder") }
             .buttonStyle(.freeTrackPrimary)
+    }
+
+    private var photosCard: some View {
+        ProgressPhotosCard(items: timeline, unitSystem: settings.unitSystem,
+                           onAdd: { showImport = true },
+                           onCompare: { showCompare = true },
+                           onSelect: { selectedPhoto = $0 })
     }
 
     private var chartCard: some View {
@@ -139,10 +170,31 @@ struct BodyView: View {
     private func load() {
         do {
             scans = try context.bodyScans()
+            photos = try context.progressPhotos()
             loadError = nil
         } catch {
             loadError = error.localizedDescription
         }
+    }
+
+    /// Closes the photo sheet, then opens the scan flow on that picture (sheets can't swap in one frame).
+    private func measure(_ item: ProgressTimelineItem, image: UIImage) {
+        selectedPhoto = nil
+        // Re-read the record: the detail sheet may have just corrected the date or weight.
+        let source = item.importedID.flatMap { try? context.progressPhoto(id: $0) }
+        let photo = ImportedScanPhoto(image: image, takenAt: source?.takenAt ?? item.date,
+                                      weightKg: source?.weightKg ?? item.weightKg, sourcePhotoID: item.importedID)
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(450))
+            importScan = photo
+        }
+    }
+
+    /// The scan keeps its own copy of the picture, so the imported original would only show up twice.
+    private func removeSourcePhoto(_ photo: ImportedScanPhoto) {
+        guard let id = photo.sourcePhotoID, let source = try? context.progressPhoto(id: id) else { return }
+        ProgressThumbnails.forget(source.filename)
+        try? context.deleteProgressPhoto(source)
     }
 
     private func trendPoints(for metric: BodyMetric) -> [BodyTrendPoint] {

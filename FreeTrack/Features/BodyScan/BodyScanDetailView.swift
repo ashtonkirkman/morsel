@@ -86,8 +86,9 @@ struct BodyScanDetailView: View {
 
     private var sourceLine: String {
         var parts = ["\(measurements.poses.count) of 3 poses"]
+        if let framing = measurements.framing, framing != .fullBody { parts.append(framing.title.lowercased()) }
         if let name = scan.segmenterName { parts.append(name) }
-        if let scale = measurements.scaleSource { parts.append(scale == "mask" ? "scale from silhouette" : "scale from joints") }
+        if let scale = measurements.scaleSourceTitle { parts.append(scale) }
         return parts.joined(separator: " · ")
     }
 

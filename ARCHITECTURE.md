@@ -20,20 +20,32 @@ FreeTrack/Core/Account     AccountService (sign-in/out, session), AccountAPIClie
                         WebOAuthFlow (ASWebAuthenticationSession), SyncEngine + SyncCollections (docs/ACCOUNTS.md)
                         UserProfile stores `birthDate` and derives `age` (legacy JSON with an Int `age` still decodes)
 FreeTrack/Core/BodyScan    On-device body scanner (docs/BODY_SCAN.md): BodyMeasurementEngine + PoseValidator + BodyScanComparison
-                        (pure, unit-tested), BodyKeypoints/BodyMask/BodyMetric/BodyMeasurements, VisionPoseDetector,
+                        (pure, unit-tested), BodyKeypoints/BodyMask/BodyMetric/BodyMeasurements, BodyFraming (full body /
+                        head to hips / head and shoulders), VisionPoseDetector,
                         BodySegmenter (VisionPersonSegmenter default, SAM2Segmenter + SAM2Model/SAM2ModelStore optional),
-                        BodyScanAnalyzer (pipeline), BodyFormat (cm/in, kg/lb), BodyScanPhotoStore (`bodyscan-` JPEGs)
-FreeTrack/Core/Models      BodyScan(@Model) + BodyScanDTO (scalars + measurementsJSON; photos/keypoints never sync)
+                        BodyScanAnalyzer (pipeline), BodyFormat (cm/in, kg/lb), BodyScanPhotoStore (`bodyscan-` JPEGs),
+                        ProgressPhotoImporter (EXIF capture date) + ProgressThumbnails (cache)
+FreeTrack/Core/Models      BodyScan(@Model) + BodyScanDTO (scalars + measurementsJSON; photos/keypoints never sync),
+                        ProgressPhoto(@Model, never synced) + ProgressTimelineItem (imported photos ∪ scan photos)
 FreeTrack/Core/Persistence ModelContainer.freeTrack(), ModelContext+Queries (entries(on:), log(_:), dailyCalories…), PhotoStore/ImageResizer,
-                        ModelContext+BodyScans (bodyScans(), baselineBodyScan(), saveBodyScan, setBaselineBodyScan, deleteBodyScan)
+                        ModelContext+BodyScans (bodyScans(), baselineBodyScan(), saveBodyScan, setBaselineBodyScan, deleteBodyScan,
+                        referenceShoulderWidthCm()), ModelContext+ProgressPhotos (progressPhotos(), saveProgressPhotos, deleteProgressPhoto)
 FreeTrack/DesignSystem     Theme (Color.m*, Spacing, Radius, FreeTrackFont, Format, Haptics), Components (Card, SectionHeader,
                         EmptyStateView, PrimaryButtonStyle/.freeTrackPrimary, .freeTrackSecondary, Chip, FloatingAddButton,
                         CalorieRing, MacroBar, MacroDot, LoadingOverlay, ConfidenceBadge, FoodRow)
 FreeTrack/Features/<X>     One folder per feature. Views + view models + feature-private services.
+FreeTrack/Features/Search  FoodSearchFlowView + FoodSearchViewModel, ServingEditorView, BasicFoodCatalog (offline unbranded
+                        staples with USDA-style values, shown first), SearchRanking (re-orders Open Food Facts hits so
+                        plain English names lead, drops non-Latin names, dedupes)
+FreeTrack/Features/Scan    OpenFoodFactsClient (barcode: world.openfoodfacts.org product API; search: search.openfoodfacts.org
+                        filtered to English + United States, widened to all English, one retry on 5xx, legacy search.pl
+                        fallback) + OpenFoodFactsMapper (accepts both `hits` and `products` shapes)
 FreeTrack/Features/Account SignInButtonsView, AccountSettingsSection, AccountPage (onboarding)
-FreeTrack/Features/BodyScan BodyView (tab), BodyScanFlowView + BodyScanFlowModel, BodyPoseCaptureView + BodyCameraController,
-                        PoseOverlayView (Canvas skeleton/mask), BodyScanDetailView, BodyScanCompareView, BodyTrendChart,
-                        BodyScanSettingsView (SAM 2 toggle/download, self-timer), BodyScanIntroSheet
+FreeTrack/Features/BodyScan BodyView (tab), BodyScanFlowView + BodyScanFlowModel (also `init(importing:)` for a scan from an old
+                        photo), BodyPoseCaptureView + BodyCameraController, PoseOverlayView (Canvas skeleton/mask),
+                        BodyScanDetailView, BodyScanCompareView, BodyTrendChart, BodyScanSettingsView (SAM 2 toggle/download,
+                        self-timer), BodyScanIntroSheet, ProgressPhotosCard (timeline strip), ProgressPhotoImportView
+                        (multi-pick + dates/angles), ProgressPhotoCompareView (before/after, slider), ProgressPhotoDetailView
 FreeTrackTests             XCTest unit tests (pure logic only: parsers, mappers, math). No UI tests.
 server/claude-proxy     Cloudflare Worker that holds the Anthropic key.
 server/account-api      Cloudflare Worker + D1: accounts (Apple/Google/Facebook) and document sync.
@@ -58,7 +70,7 @@ Views under `Features/` must be constructible with the exact signatures below �
 | `FoodSearchFlowView` | `FoodSearchFlowView(onLogged: @escaping ([LogEntry]) -> Void)` | search agent |
 | `QuickAddFlowView` | `QuickAddFlowView(onLogged: @escaping ([LogEntry]) -> Void)` | search agent |
 | `BodyView` | `BodyView()` — "Body" tab between History and Settings | body-scan agent |
-| `BodyScanFlowView` | `BodyScanFlowView(onSaved: @escaping (BodyScan?) -> Void)` — nil = cancelled | body-scan agent |
+| `BodyScanFlowView` | `BodyScanFlowView(onSaved: @escaping (BodyScan?) -> Void)` — nil = cancelled; `BodyScanFlowView(importing: ImportedScanPhoto, onSaved:)` | body-scan agent |
 | `BodyScanDetailView` / `BodyScanCompareView` | `BodyScanDetailView(scan:)`, `BodyScanCompareView(baseline:current:)` | body-scan agent |
 
 Flow views are presented inside a `.sheet`. They own their own `NavigationStack`, insert entries with

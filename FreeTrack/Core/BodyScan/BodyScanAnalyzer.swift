@@ -16,19 +16,21 @@ struct PoseAnalysisResult {
 enum BodyScanAnalysisError: LocalizedError {
     case invalidImage
     case noPose
-    case notFullBody
+    /// Not even the head and shoulders were found. (A partial body is fine — see `BodyFraming`.)
+    case headNotVisible
 
     var errorDescription: String? {
         switch self {
         case .invalidImage: return "Could not decode image."
         case .noPose: return PoseValidator.noPoseMessage
-        case .notFullBody: return PoseValidator.notFullBodyMessage
+        case .headNotVisible: return PoseValidator.headAndShouldersMessage
         }
     }
 }
 
-/// Runs the on-device pipeline for a single pose photo: normalise → Vision pose → segmentation (SAM 2 when
-/// enabled and installed, Apple Vision otherwise or on any failure) → validation. Nothing leaves the phone.
+/// Runs the on-device pipeline for a single pose photo: normalise → Vision pose → framing/validation →
+/// segmentation (SAM 2 when enabled and installed, Apple Vision otherwise or on any failure). The photo may
+/// show the whole body, head to hips, or just head and shoulders. Nothing leaves the phone.
 struct BodyScanAnalyzer {
     static let analysisMaxDimension: CGFloat = 1280
 
@@ -49,9 +51,11 @@ struct BodyScanAnalyzer {
         let image = Self.normalized(original, maxDimension: Self.analysisMaxDimension)
         guard let cgImage = image.cgImage, cgImage.width > 0, cgImage.height > 0 else { throw BodyScanAnalysisError.invalidImage }
 
-        guard let keypoints = try await VisionPoseDetector.detect(in: cgImage) else { throw BodyScanAnalysisError.noPose }
-        let validation = PoseValidator.validate(keypoints, poseType: poseType)
-        guard validation.isFullBody else { throw BodyScanAnalysisError.notFullBody }
+        guard let detected = try await VisionPoseDetector.detect(in: cgImage) else { throw BodyScanAnalysisError.noPose }
+        let validation = PoseValidator.validate(detected, poseType: poseType)
+        guard let framing = validation.framing else { throw BodyScanAnalysisError.headNotVisible }
+        // Joints Vision guessed below the edge of a partial photo are dropped before segmenting and measuring.
+        let keypoints = detected.restricted(to: framing)
 
         var mask: BodyMask?
         var segmenterName: String?
@@ -75,7 +79,7 @@ struct BodyScanAnalyzer {
             }
         }
         let observation = PoseObservation(poseType: poseType, keypoints: keypoints, mask: mask,
-                                          maskQuality: quality, poseMatched: validation.poseMatched)
+                                          maskQuality: quality, poseMatched: validation.poseMatched, framing: framing)
         return PoseAnalysisResult(image: image, observation: observation, validation: validation,
                                   warning: warning, segmenterName: segmenterName)
     }

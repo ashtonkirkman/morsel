@@ -31,6 +31,17 @@ extension ModelContext {
         return try fetch(descriptor).first
     }
 
+    /// Shoulder joint span (cm) from the most recent scan whose scale came from the person's own height
+    /// (a full-body photo). Used to scale head-to-hips photos in later scans. Nil until such a scan exists.
+    func referenceShoulderWidthCm() throws -> Double? {
+        for scan in try bodyScans() {
+            guard let width = scan.shoulderWidthCm, width > 0, let source = scan.measurements?.scaleSource,
+                  source == "mask" || source == "keypoints" else { continue }
+            return width
+        }
+        return nil
+    }
+
     /// Inserts and saves. The first scan ever becomes the baseline automatically.
     @discardableResult
     func saveBodyScan(_ scan: BodyScan) throws -> BodyScan {

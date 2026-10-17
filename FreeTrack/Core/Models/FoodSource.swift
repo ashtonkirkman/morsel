@@ -7,6 +7,8 @@ enum FoodSource: String, Codable, CaseIterable, Sendable {
     case search
     case manual
     case favorite
+    /// Built-in whole food (fruit, vegetable, staple) with USDA-style generic nutrition; no brand.
+    case generic
 
     var symbolName: String {
         switch self {
@@ -15,6 +17,7 @@ enum FoodSource: String, Codable, CaseIterable, Sendable {
         case .search: return "magnifyingglass"
         case .manual: return "pencil"
         case .favorite: return "star"
+        case .generic: return "leaf"
         }
     }
 }

@@ -51,7 +51,7 @@ targets:
           - CFBundleURLName: com.ashtonkirkman.morsel
             CFBundleURLSchemes: [freetrack]
         NSCameraUsageDescription: Free Track uses the camera to scan barcodes, photograph meals and take body-scan photos for on-device measurements.
-        NSPhotoLibraryUsageDescription: Free Track can estimate calories from meal photos you pick from your library.
+        NSPhotoLibraryUsageDescription: Free Track can estimate calories from meal photos you pick from your library, and keeps progress photos you choose for body comparisons.
         NSAppTransportSecurity:
           NSAllowsArbitraryLoads: false
         UIApplicationSceneManifest:

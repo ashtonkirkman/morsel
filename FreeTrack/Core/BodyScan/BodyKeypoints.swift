@@ -98,6 +98,13 @@ struct BodyKeypoints: Codable, Equatable {
         return BodyPoint.midpoint(l, r)
     }
 
+    /// Only the joints that can really be seen with `framing`; joints Vision extrapolated below the bottom of
+    /// a partial photo are dropped so they neither get measured nor drawn.
+    func restricted(to framing: BodyFraming) -> BodyKeypoints {
+        let allowed = framing.visibleJoints
+        return BodyKeypoints(imageWidth: imageWidth, imageHeight: imageHeight, joints: joints.filter { allowed.contains($0.joint) })
+    }
+
     /// Same joints expressed in another image size (e.g. after resizing the photo).
     func scaled(toWidth width: Int, height: Int) -> BodyKeypoints {
         guard imageWidth > 0, imageHeight > 0 else { return self }

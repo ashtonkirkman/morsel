@@ -4,6 +4,17 @@ import SwiftData
 import SwiftUI
 import UIKit
 
+/// An old photo from the library turned into a scan: the scan is dated to the photo, and the weight (if the
+/// person noted one on the progress photo) pre-fills the setup step.
+struct ImportedScanPhoto: Identifiable {
+    let id = UUID()
+    let image: UIImage
+    let takenAt: Date
+    let weightKg: Double?
+    /// The `ProgressPhoto` this came from; the host removes it once the scan (which keeps its own copy) is saved.
+    let sourcePhotoID: UUID?
+}
+
 /// State machine for a new scan: setup (weight) → three poses → review → save.
 @MainActor
 @Observable
@@ -23,6 +34,11 @@ final class BodyScanFlowModel {
     var age: Int?
     var notes = ""
     let hasProfile: Bool
+    /// When the scan is built from an old photo this is the photo's date; otherwise now.
+    var scanDate: Date = .now
+    var isImported = false
+    /// Shoulder joint span (cm) from the latest full-body scan, used to scale partial photos.
+    var referenceShoulderWidthCm: Double?
 
     // Per-pose results
     var results: [BodyPoseType: PoseAnalysisResult] = [:]
@@ -35,12 +51,16 @@ final class BodyScanFlowModel {
 
     @ObservationIgnored private var task: Task<Void, Never>?
 
-    init(profile: UserProfile?) {
+    init(profile: UserProfile?, imported: ImportedScanPhoto? = nil) {
         heightCm = profile?.heightCm ?? 170
-        weightKg = profile?.weightKg ?? 70
+        weightKg = imported?.weightKg ?? profile?.weightKg ?? 70
         sex = profile?.sex ?? .male
         age = profile?.age
         hasProfile = profile != nil
+        if let imported {
+            scanDate = imported.takenAt
+            isImported = true
+        }
     }
 
     // MARK: - Derived
@@ -49,6 +69,8 @@ final class BodyScanFlowModel {
     var canReview: Bool { results[.frontArmsDown] != nil }
     var completedPoses: [BodyPoseType] { BodyPoseType.allCases.filter { results[$0] != nil } }
     var isSetupValid: Bool { heightCm >= 100 && heightCm <= 250 && weightKg >= 25 && weightKg <= 400 }
+    /// Framing of the primary photo (front, else T-pose), nil until one is captured.
+    var framing: BodyFraming? { (results[.frontArmsDown] ?? results[.frontArmsOut])?.observation.framing }
 
     func result(for pose: BodyPoseType) -> PoseAnalysisResult? { results[pose] }
 
@@ -114,7 +136,8 @@ final class BodyScanFlowModel {
         let input = BodyScanInput(front: results[.frontArmsDown]?.observation,
                                   tPose: results[.frontArmsOut]?.observation,
                                   side: results[.sideLeft]?.observation,
-                                  heightCm: heightCm, weightKg: weightKg, sex: sex, age: age)
+                                  heightCm: heightCm, weightKg: weightKg, sex: sex, age: age,
+                                  referenceShoulderWidthCm: referenceShoulderWidthCm)
         return BodyMeasurementEngine.measure(input)
     }
 
@@ -131,7 +154,7 @@ final class BodyScanFlowModel {
             var keypoints: [BodyPoseType: BodyKeypoints] = [:]
             for (pose, result) in results { keypoints[pose] = result.observation.keypoints }
             let trimmed = notes.trimmingCharacters(in: .whitespacesAndNewlines)
-            let scan = BodyScan(heightCm: heightCm, weightKg: weightKg, sex: sex,
+            let scan = BodyScan(createdAt: scanDate, heightCm: heightCm, weightKg: weightKg, sex: sex,
                                 notes: trimmed.isEmpty ? nil : trimmed,
                                 measurements: measurements, keypoints: keypoints, segmenterName: segmenterName,
                                 frontPhotoFilename: filenames[.frontArmsDown],

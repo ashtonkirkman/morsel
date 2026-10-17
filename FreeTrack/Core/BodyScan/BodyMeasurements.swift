@@ -10,13 +10,17 @@ struct PoseObservation {
     var maskQuality: Double
     /// Whether the joints look like the requested pose (`PoseValidator`).
     var poseMatched: Bool
+    /// How much of the body the photo shows (`PoseValidator.framing(of:)`).
+    var framing: BodyFraming
 
-    init(poseType: BodyPoseType, keypoints: BodyKeypoints, mask: BodyMask?, maskQuality: Double = 1, poseMatched: Bool = true) {
+    init(poseType: BodyPoseType, keypoints: BodyKeypoints, mask: BodyMask?, maskQuality: Double = 1, poseMatched: Bool = true,
+         framing: BodyFraming = .fullBody) {
         self.poseType = poseType
         self.keypoints = keypoints
         self.mask = mask
         self.maskQuality = maskQuality
         self.poseMatched = poseMatched
+        self.framing = framing
     }
 }
 
@@ -29,6 +33,9 @@ struct BodyScanInput {
     var weightKg: Double
     var sex: BiologicalSex
     var age: Int?
+    /// Shoulder joint span in cm from an earlier full-body scan. Lets a head-to-hips photo be scaled from the
+    /// shoulders instead of population proportions.
+    var referenceShoulderWidthCm: Double? = nil
 
     var observations: [PoseObservation] { [front, tPose, side].compactMap { $0 } }
 }
@@ -41,9 +48,12 @@ struct BodyMeasurements: Codable, Equatable {
     var weightKg: Double = 0
     var sexRaw: String = BiologicalSex.male.rawValue
     var age: Int?
-    /// Pixel-per-centimetre scale of the front photo and how it was derived.
+    /// Pixel-per-centimetre scale of the front photo and how it was derived ("mask", "keypoints",
+    /// "referenceShoulders", "noseHipEstimate", "shoulderEstimate").
     var frontPxPerCm: Double?
     var scaleSource: String?
+    /// `BodyFraming` of the primary (front, else T-pose) photo. Nil in scans made before partial framing existed.
+    var framingRaw: String?
     /// Which pose each metric was taken from (for "from T-pose" labels).
     var sources: [String: String] = [:]
     var values: [String: MeasuredValue] = [:]
@@ -51,6 +61,19 @@ struct BodyMeasurements: Codable, Equatable {
     var engineVersion: Int = BodyMeasurementEngine.version
 
     var sex: BiologicalSex { BiologicalSex(rawValue: sexRaw) ?? .male }
+
+    var framing: BodyFraming? { framingRaw.flatMap(BodyFraming.init(rawValue:)) }
+
+    /// Human label for how the pixel scale was derived.
+    var scaleSourceTitle: String? {
+        switch scaleSource {
+        case "mask": return "scale from silhouette"
+        case "keypoints": return "scale from joints"
+        case "referenceShoulders": return "scale from an earlier full-body scan"
+        case "noseHipEstimate", "shoulderEstimate": return "approximate scale (partial photo)"
+        default: return nil
+        }
+    }
 
     subscript(metric: BodyMetric) -> MeasuredValue? {
         get { values[metric.rawValue] }

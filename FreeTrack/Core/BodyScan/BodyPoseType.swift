@@ -1,6 +1,7 @@
 import Foundation
 
 /// The three photos a body scan is made of. Ported from FreeFit's `POSE_STEPS` (the back view was dropped).
+/// Each photo may show the whole body or only the upper body (`BodyFraming`).
 enum BodyPoseType: String, Codable, CaseIterable, Identifiable {
     case frontArmsDown = "front_arms_down"
     case frontArmsOut = "front_arms_out"
@@ -41,17 +42,17 @@ enum BodyPoseType: String, Codable, CaseIterable, Identifiable {
             return ["Feet together, toes pointing forward",
                     "Arms straight down at your sides",
                     "Look directly into the camera",
-                    "Full body visible from head to toes"]
+                    "Head to toes in frame for every number; head to hips also works"]
         case .frontArmsOut:
             return ["Feet shoulder-width apart",
                     "Arms extended horizontally, palms down",
                     "Keep arms at shoulder height",
-                    "Full body visible from head to toes"]
+                    "Head to toes in frame for every number; head to hips also works"]
         case .sideLeft:
             return ["Turn 90° — left side toward camera",
                     "Arms at your sides",
                     "Stand straight, feet together",
-                    "Full body visible from head to toes"]
+                    "Head to toes in frame for every number; head to hips also works"]
         }
     }
 

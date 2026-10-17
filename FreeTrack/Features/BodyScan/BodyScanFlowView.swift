@@ -3,9 +3,12 @@ import SwiftUI
 
 /// New-scan sheet: weight → front / T-pose / side photos (each analysed on device) → review → save.
 /// Calls `onSaved(scan)` on success and `onSaved(nil)` on cancel; the host dismisses the sheet.
+/// `init(importing:onSaved:)` starts from an old library photo: it is analysed as the front pose and the scan
+/// is dated to the photo.
 @MainActor
 struct BodyScanFlowView: View {
     let onSaved: (BodyScan?) -> Void
+    private let imported: ImportedScanPhoto?
 
     @Environment(AppSettings.self) private var settings
     @Environment(\.modelContext) private var context
@@ -15,6 +18,12 @@ struct BodyScanFlowView: View {
 
     init(onSaved: @escaping (BodyScan?) -> Void) {
         self.onSaved = onSaved
+        self.imported = nil
+    }
+
+    init(importing photo: ImportedScanPhoto, onSaved: @escaping (BodyScan?) -> Void) {
+        self.onSaved = onSaved
+        self.imported = photo
     }
 
     var body: some View {
@@ -27,7 +36,7 @@ struct BodyScanFlowView: View {
                 }
             }
             .background(Color.mBackground.ignoresSafeArea())
-            .navigationTitle("New scan")
+            .navigationTitle(imported == nil ? "New scan" : "Scan from photo")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -36,7 +45,7 @@ struct BodyScanFlowView: View {
             }
             .keyboardDoneToolbar()
         }
-        .onAppear { if model == nil { model = BodyScanFlowModel(profile: settings.profile) } }
+        .onAppear(perform: prepare)
         .onDisappear { model?.cancel() }
         .fullScreenCover(item: $capturingPose) { pose in
             BodyPoseCaptureView(pose: pose, countdownSeconds: countdownSeconds, onCapture: { image in
@@ -64,6 +73,17 @@ struct BodyScanFlowView: View {
 
     // MARK: - Actions
 
+    private func prepare() {
+        guard model == nil else { return }
+        let model = BodyScanFlowModel(profile: settings.profile, imported: imported)
+        model.referenceShoulderWidthCm = try? context.referenceShoulderWidthCm()
+        self.model = model
+        if let imported {
+            // Analyse straight away so the front step already shows the result after "Start".
+            model.analyze(imported.image, for: .frontArmsDown, analyzer: BodyScanAnalyzer.make(useSAM2: settings.useSAM2Segmentation))
+        }
+    }
+
     private func begin(_ image: UIImage, for pose: BodyPoseType) {
         let analyzer = BodyScanAnalyzer.make(useSAM2: settings.useSAM2Segmentation)
         model?.analyze(image, for: pose, analyzer: analyzer)
@@ -73,7 +93,8 @@ struct BodyScanFlowView: View {
         guard let model else { return }
         do {
             let scan = try model.save(into: context)
-            writeBackWeight(model.weightKg)
+            // An old photo's weight is history, not today's number.
+            if !model.isImported { writeBackWeight(model.weightKg) }
             if settings.hapticsEnabled { Haptics.success() }
             onSaved(scan)
         } catch {
@@ -112,10 +133,12 @@ struct ScanSetupView: View {
             VStack(spacing: Spacing.l) {
                 Card {
                     VStack(alignment: .leading, spacing: Spacing.s) {
-                        Text("Today's numbers")
+                        Text(model.isImported ? "Your numbers on \(model.scanDate.formatted(.dateTime.month(.abbreviated).day().year()))" : "Today's numbers")
                             .font(FreeTrackFont.headline)
                             .foregroundStyle(Color.mText)
-                        Text("Your height sets the scale for every measurement; weight feeds lean-mass and your calorie goals.")
+                        Text(model.isImported
+                             ? "This scan will be dated to the photo. Enter the weight you were then, if you know it; your height sets the scale for every measurement."
+                             : "Your height sets the scale for every measurement; weight feeds lean-mass and your calorie goals.")
                             .font(FreeTrackFont.caption)
                             .foregroundStyle(Color.mTextSecondary)
                         weightField
@@ -156,7 +179,7 @@ struct ScanSetupView: View {
                                     .foregroundStyle(Color.mTextSecondary)
                             }
                         }
-                        Text("Plain background, even light, fitted clothing. Prop the phone at hip height about 2–3 m away. Everything is analysed on this phone; photos never leave it.")
+                        Text("Plain background, even light, fitted clothing. Head to toes in frame gives every number; a head-to-hips or head-and-shoulders photo still works with fewer. Everything is analysed on this phone; photos never leave it.")
                             .font(FreeTrackFont.caption)
                             .foregroundStyle(Color.mTextTertiary)
                             .padding(.top, Spacing.xs)
@@ -310,6 +333,17 @@ struct PoseStepView: View {
 
     private func resultCard(_ result: PoseAnalysisResult) -> some View {
         VStack(spacing: Spacing.m) {
+            if let note = result.observation.framing.note {
+                Card {
+                    HStack(alignment: .top, spacing: Spacing.s) {
+                        Image(systemName: "person.crop.rectangle").foregroundStyle(Color.mAccent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(result.observation.framing.title).font(FreeTrackFont.headline).foregroundStyle(Color.mText)
+                            Text(note).font(FreeTrackFont.caption).foregroundStyle(Color.mTextSecondary)
+                        }
+                    }
+                }
+            }
             if let warning = result.warning {
                 Card {
                     HStack(alignment: .top, spacing: Spacing.s) {
@@ -416,6 +450,12 @@ struct ScanReviewView: View {
                         }
                         if model.results[.sideLeft] == nil {
                             Text("Without a side photo, waist, chest and hip circumferences assume typical depth and are marked medium confidence.")
+                                .font(FreeTrackFont.caption).foregroundStyle(Color.mTextTertiary)
+                        }
+                        if let framing = model.framing, framing != .fullBody {
+                            Text(framing == .upperBody
+                                 ? "Head-to-hips photo: no leg measurements, and the scale is \(model.referenceShoulderWidthCm == nil ? "estimated from body proportions (low confidence)" : "taken from your last full-body scan (medium confidence)")."
+                                 : "Head-and-shoulders photo: shoulder and neck numbers only. Retake with your hips or feet in frame for more.")
                                 .font(FreeTrackFont.caption).foregroundStyle(Color.mTextTertiary)
                         }
                     }

@@ -24,6 +24,10 @@ enum BodyMeasurementEngine {
     static let noseToAnkleHeightFactor = 1.13
     /// Mask-derived height is only trusted when it is between these multiples of the nose → ankle distance.
     static let maskHeightPlausibleRange = 1.05...1.30
+    /// Partial photos (no ankles): height ≈ nose → hip × 2.55 (nose ≈ 0.93 H, hip joint ≈ 0.53 H), or
+    /// height ≈ shoulder joint span × 4.4 (biacromial breadth ≈ 0.225 H). Population averages — low confidence.
+    static let noseToHipHeightFactor = PoseValidator.noseToHipHeightFactor
+    static let shoulderSpanHeightFactor = PoseValidator.shoulderSpanHeightFactor
     static let bodyFatRange = 3.0...55.0
 
     // MARK: - Entry point
@@ -36,16 +40,25 @@ enum BodyMeasurementEngine {
         m.age = input.age
         m.poses = input.observations.map(\.poseType)
 
-        let front = input.front.flatMap { Frame($0, heightCm: input.heightCm) }
-        let tPose = input.tPose.flatMap { Frame($0, heightCm: input.heightCm) }
-        let side = input.side.flatMap { Frame($0, heightCm: input.heightCm) }
+        // A full-body photo in this scan calibrates the shoulder span for any partial photo in the same scan;
+        // otherwise an earlier full-body scan can. Last resort: population proportions.
+        var reference = input.referenceShoulderWidthCm
+        let fullFront = input.front.flatMap { Frame($0, heightCm: input.heightCm, referenceShoulderWidthCm: reference) }
+        if let f = fullFront, f.isCalibrated, let shoulders = f.distanceCm(.leftShoulder, .rightShoulder), shoulders > 0 {
+            reference = shoulders
+        }
+        let front = fullFront
+        let tPose = input.tPose.flatMap { Frame($0, heightCm: input.heightCm, referenceShoulderWidthCm: reference) }
+        let side = input.side.flatMap { Frame($0, heightCm: input.heightCm, referenceShoulderWidthCm: reference) }
 
         if let f = front {
             m.frontPxPerCm = f.pxPerCm
             m.scaleSource = f.scaleSource
+            m.framingRaw = f.observation.framing.rawValue
         } else if let t = tPose {
             m.frontPxPerCm = t.pxPerCm
             m.scaleSource = t.scaleSource
+            m.framingRaw = t.observation.framing.rawValue
         }
 
         // Lengths and ratios come from the front pose, else the T-pose (never the side: one plane only).
@@ -80,11 +93,24 @@ enum BodyMeasurementEngine {
         var mask: BodyMask? { observation.mask }
         var poseType: BodyPoseType { observation.poseType }
 
-        init?(_ observation: PoseObservation, heightCm: Double) {
-            guard let scale = BodyMeasurementEngine.scale(for: observation, heightCm: heightCm) else { return nil }
+        init?(_ observation: PoseObservation, heightCm: Double, referenceShoulderWidthCm: Double? = nil) {
+            guard let scale = BodyMeasurementEngine.scale(for: observation, heightCm: heightCm,
+                                                          referenceShoulderWidthCm: referenceShoulderWidthCm) else { return nil }
             self.observation = observation
             self.pxPerCm = scale.pxPerCm
             self.scaleSource = scale.source
+        }
+
+        /// True when the scale came from the person's own height (full-body photo).
+        var isCalibrated: Bool { scaleSource == "mask" || scaleSource == "keypoints" }
+
+        /// Highest confidence any number from this frame can have, given how the scale was derived.
+        var scaleCap: MeasurementConfidence {
+            switch scaleSource {
+            case "mask", "keypoints": return .high
+            case "referenceShoulders": return .medium
+            default: return .low
+            }
         }
 
         func cm(_ px: Double) -> Double { px / pxPerCm }
@@ -104,7 +130,7 @@ enum BodyMeasurementEngine {
         func lengthConfidence(_ joints: [BodyJoint]) -> MeasurementConfidence {
             let c = keypoints.minConfidence(joints)
             let level: MeasurementConfidence = c >= 0.7 ? .high : (c >= 0.4 ? .medium : .low)
-            return observation.poseMatched ? level : min(level, .medium)
+            return min(observation.poseMatched ? level : min(level, .medium), scaleCap)
         }
 
         /// Confidence for a mask-derived measurement.
@@ -113,19 +139,25 @@ enum BodyMeasurementEngine {
             let q = observation.maskQuality
             let level: MeasurementConfidence
             if q >= 0.7, c >= 0.6 { level = .high } else if q >= 0.4, c >= 0.4 { level = .medium } else { level = .low }
-            return observation.poseMatched ? level : min(level, .medium)
+            return min(observation.poseMatched ? level : min(level, .medium), scaleCap)
         }
     }
 
     // MARK: - Scale
 
-    /// Pixels per centimetre. Prefers the mask (top of head → sole) and falls back to nose → ankle × 1.13.
-    static func scale(for observation: PoseObservation, heightCm: Double) -> (pxPerCm: Double, source: String)? {
+    /// Pixels per centimetre. Full body: prefers the mask (top of head → sole) and falls back to nose → ankle
+    /// × 1.13. Partial photo: the shoulder span against `referenceShoulderWidthCm` from a full-body scan, else
+    /// nose → hip × 2.55 (any pose), else the shoulder span × 4.4 (front poses only — a side view's span is
+    /// foreshortened). Nil when there is nothing to scale with.
+    static func scale(for observation: PoseObservation, heightCm: Double,
+                      referenceShoulderWidthCm: Double? = nil) -> (pxPerCm: Double, source: String)? {
         guard heightCm > 0 else { return nil }
         let kp = observation.keypoints
-        guard let nose = kp.point(.nose), let ankleMid = kp.ankleMid else { return nil }
+        guard let nose = kp.point(.nose) else { return nil }
+        guard let ankleMid = kp.ankleMid, ankleMid.y - nose.y > 1 else {
+            return partialScale(for: observation, heightCm: heightCm, referenceShoulderWidthCm: referenceShoulderWidthCm)
+        }
         let noseToAnkle = ankleMid.y - nose.y
-        guard noseToAnkle > 1 else { return nil }
 
         if let mask = observation.mask {
             let shoulderWidth = (kp.point(.leftShoulder).flatMap { l in kp.point(.rightShoulder).map { BodyPoint.distance(l, $0) } }) ?? 0
@@ -144,6 +176,27 @@ enum BodyMeasurementEngine {
             }
         }
         return (noseToAnkle * noseToAnkleHeightFactor / heightCm, "keypoints")
+    }
+
+    private static func partialScale(for observation: PoseObservation, heightCm: Double,
+                                     referenceShoulderWidthCm: Double?) -> (pxPerCm: Double, source: String)? {
+        let kp = observation.keypoints
+        let isFrontal = observation.poseType != .sideLeft
+        let shoulderSpanPx: Double? = {
+            guard let l = kp.point(.leftShoulder), let r = kp.point(.rightShoulder) else { return nil }
+            let d = BodyPoint.distance(l, r)
+            return d > 1 ? d : nil
+        }()
+        if isFrontal, let span = shoulderSpanPx, let ref = referenceShoulderWidthCm, ref > 0 {
+            return (span / ref, "referenceShoulders")
+        }
+        if let nose = kp.point(.nose), let hipMid = kp.hipMid, hipMid.y - nose.y > 1 {
+            return ((hipMid.y - nose.y) * noseToHipHeightFactor / heightCm, "noseHipEstimate")
+        }
+        if isFrontal, let span = shoulderSpanPx {
+            return (span * shoulderSpanHeightFactor / heightCm, "shoulderEstimate")
+        }
+        return nil
     }
 
     // MARK: - Lengths

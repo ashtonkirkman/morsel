@@ -128,6 +128,40 @@ final class ScanMapperTests: XCTestCase {
           ]
         }
         """
+
+        /// search.openfoodfacts.org shape: `hits` instead of `products`, `brands` as an array,
+        /// an English name alongside the primary one, and one hit with no nutriments at all.
+        static let searchAPI = """
+        {
+          "count": 3,
+          "page": 1,
+          "page_size": 40,
+          "hits": [
+            {
+              "code": "0021000615216",
+              "product_name": "Fromage Cheddar",
+              "product_name_en": "Cheddar Cheese",
+              "brands": ["Kraft", "Kraft Heinz"],
+              "serving_size": "1 slice (21 g)",
+              "serving_quantity": "21",
+              "nutriments": { "energy-kcal_100g": 371, "proteins_100g": 18, "carbohydrates_100g": 4.8, "fat_100g": 30.7, "sodium_100g": 1.3 }
+            },
+            {
+              "code": "2000000151418",
+              "product_name": "Fresh Banana",
+              "product_name_en": "Fresh Banana",
+              "brands": ["Fresh Banana"],
+              "lang": "en"
+            },
+            {
+              "code": "5010251953760",
+              "product_name": "Bananas",
+              "brands": [],
+              "nutriments": { "energy-kcal_100g": 89, "proteins_100g": 1.1, "carbohydrates_100g": 22.8, "fat_100g": 0.3 }
+            }
+          ]
+        }
+        """
     }
 
     private func data(_ json: String) -> Data { Data(json.utf8) }
@@ -220,6 +254,30 @@ final class ScanMapperTests: XCTestCase {
         XCTAssertEqual(oatMilk.source, .search)
         XCTAssertEqual(oatMilk.servingDescription, "100 g")
         XCTAssertEqual(oatMilk.nutritionPerServing.calories, 46, accuracy: 0.001)
+    }
+
+    func testSearchAPIShapeMapsHitsBrandArraysAndEnglishNames() throws {
+        let foods = try OpenFoodFactsMapper.mapSearchResponse(data: data(Fixtures.searchAPI))
+        XCTAssertEqual(foods.map(\.name), ["Cheddar Cheese", "Bananas"], "nameless-nutriment hit is dropped")
+
+        let cheddar = foods[0]
+        XCTAssertEqual(cheddar.brand, "Kraft")
+        XCTAssertEqual(cheddar.barcode, "0021000615216")
+        XCTAssertEqual(cheddar.servingDescription, "1 slice (21 g)")
+        XCTAssertEqual(cheddar.servingGrams, 21)
+        XCTAssertEqual(cheddar.nutritionPerServing.calories, 371 * 0.21, accuracy: 0.01)
+        XCTAssertEqual(cheddar.nutritionPerServing.sodium ?? 0, 1300 * 0.21, accuracy: 0.01)
+        XCTAssertEqual(cheddar.source, .search)
+
+        let banana = foods[1]
+        XCTAssertNil(banana.brand)
+        XCTAssertEqual(banana.servingDescription, "100 g")
+        XCTAssertEqual(banana.nutritionPerServing.calories, 89)
+    }
+
+    func testBrandArrayHelperSkipsBlankEntries() {
+        XCTAssertEqual(OpenFoodFactsMapper.primaryBrand(["  ", "", "Kraft, Kraft Heinz"]), "Kraft")
+        XCTAssertNil(OpenFoodFactsMapper.primaryBrand([String]()))
     }
 
     func testSearchWithoutProductsArrayIsEmpty() throws {

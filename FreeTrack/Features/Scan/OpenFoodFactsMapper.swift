@@ -27,7 +27,8 @@ enum OpenFoodFactsMapper {
         return mapProduct(product, source: .barcode, fallbackBarcode: fallback)
     }
 
-    /// Maps a `/cgi/search.pl?json=1` body, dropping products without a name or energy data.
+    /// Maps a search body, dropping products without a name or energy data. Accepts both the
+    /// search-a-licious shape (`{"hits": [...]}`) and the legacy `search.pl` shape (`{"products": [...]}`).
     static func mapSearchResponse(data: Data) throws -> [FoodItem] {
         let response: OFFSearchResponse
         do {
@@ -43,7 +44,7 @@ enum OpenFoodFactsMapper {
     /// Builds a `FoodItem` from one OFF product. Nil when the product has no usable name or no
     /// energy value (per serving or per 100 g).
     static func mapProduct(_ product: OFFProduct, source: FoodSource, fallbackBarcode: String?) -> FoodItem? {
-        guard let name = cleaned(product.productName) else { return nil }
+        guard let name = cleaned(product.productNameEn) ?? cleaned(product.productName) else { return nil }
         let nutriments = product.nutriments ?? OFFNutriments(values: [:])
         let servingQuantity = product.servingQuantity?.value ?? 0
 
@@ -117,10 +118,14 @@ enum OpenFoodFactsMapper {
         return trimmed
     }
 
-    /// OFF `brands` is comma-separated; take the first one.
+    /// OFF `brands` is comma-separated (legacy API) or an array (search API); take the first entry.
     static func primaryBrand(_ brands: String?) -> String? {
         guard let brands else { return nil }
         return brands.split(separator: ",").map { String($0) }.compactMap { cleaned($0) }.first
+    }
+
+    static func primaryBrand(_ brands: [String]) -> String? {
+        brands.lazy.compactMap { primaryBrand($0) }.first
     }
 
     /// Lenient number parsing for string-typed OFF values ("1.5", "1,5", "30 g").
@@ -229,22 +234,28 @@ struct OFFLookupResponse: Decodable {
 
 struct OFFSearchResponse: Decodable {
     var count: LenientDouble?
+    /// `hits` (search.openfoodfacts.org) or `products` (legacy search.pl); whichever is present.
     var products: LossyArray<OFFProduct>
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         count = try container.decodeIfPresent(LenientDouble.self, forKey: .count)
-        products = try container.decodeIfPresent(LossyArray<OFFProduct>.self, forKey: .products) ?? LossyArray([])
+        products = try container.decodeIfPresent(LossyArray<OFFProduct>.self, forKey: .hits)
+            ?? container.decodeIfPresent(LossyArray<OFFProduct>.self, forKey: .products)
+            ?? LossyArray([])
     }
 
     enum CodingKeys: String, CodingKey {
-        case count, products
+        case count, products, hits
     }
 }
 
 struct OFFProduct: Decodable {
     var code: LenientString?
     var productName: String?
+    /// English name when the product has one (search API only); preferred over `productName`.
+    var productNameEn: String?
+    /// Comma-separated string (legacy API) or array (search API), normalised to comma-separated.
     var brands: String?
     var servingSize: String?
     var servingQuantity: LenientDouble?
@@ -255,6 +266,7 @@ struct OFFProduct: Decodable {
     enum CodingKeys: String, CodingKey {
         case code, brands, nutriments, quantity
         case productName = "product_name"
+        case productNameEn = "product_name_en"
         case servingSize = "serving_size"
         case servingQuantity = "serving_quantity"
         case imageFrontSmallUrl = "image_front_small_url"
@@ -264,7 +276,12 @@ struct OFFProduct: Decodable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         code = try container.decodeIfPresent(LenientString.self, forKey: .code)
         productName = try? container.decodeIfPresent(String.self, forKey: .productName)
-        brands = try? container.decodeIfPresent(String.self, forKey: .brands)
+        productNameEn = try? container.decodeIfPresent(String.self, forKey: .productNameEn)
+        if let list = try? container.decodeIfPresent([String].self, forKey: .brands) {
+            brands = list.joined(separator: ",")
+        } else {
+            brands = try? container.decodeIfPresent(String.self, forKey: .brands)
+        }
         servingSize = try? container.decodeIfPresent(String.self, forKey: .servingSize)
         servingQuantity = try container.decodeIfPresent(LenientDouble.self, forKey: .servingQuantity)
         nutriments = try? container.decodeIfPresent(OFFNutriments.self, forKey: .nutriments)
