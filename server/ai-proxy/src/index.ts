@@ -1,9 +1,9 @@
 /**
- * Free Track Claude proxy — a Cloudflare Worker that holds the Anthropic API key so the iOS app never does.
+ * Free Track AI proxy — a Cloudflare Worker that holds the OpenAI API key so the iOS app never does.
  *
- * Forwards POST /v1/messages to api.anthropic.com with guardrails:
- *   - only POST /v1/messages (everything else 404)
- *   - JSON body ≤ 6 MB, model allow-list, max_tokens cap
+ * Forwards POST /v1/responses to api.openai.com with guardrails:
+ *   - only POST /v1/responses (everything else 404)
+ *   - JSON body ≤ 6 MB, model allow-list, max_output_tokens cap, store forced to false
  *   - client-supplied credentials are never forwarded
  *   - optional shared app token (APP_TOKEN secret ⇄ x-morsel-token header)
  *   - optional per-IP rate limit via a Rate Limiting binding (RATE_LIMITER)
@@ -14,24 +14,24 @@ export interface RateLimiter {
 }
 
 export interface Env {
-  /** `npx wrangler secret put ANTHROPIC_API_KEY` */
-  ANTHROPIC_API_KEY?: string;
+  /** `npx wrangler secret put OPENAI_API_KEY` */
+  OPENAI_API_KEY?: string;
   /** Optional: `npx wrangler secret put APP_TOKEN`; when set, clients must send it as `x-morsel-token`. */
   APP_TOKEN?: string;
   /** Optional Rate Limiting binding; see wrangler.toml. */
   RATE_LIMITER?: RateLimiter;
 }
 
-const UPSTREAM = "https://api.anthropic.com/v1/messages";
-const ALLOWED_MODELS: ReadonlySet<string> = new Set(["claude-opus-5", "claude-sonnet-5"]);
+const UPSTREAM = "https://api.openai.com/v1/responses";
+const ALLOWED_MODELS: ReadonlySet<string> = new Set(["gpt-6-luna", "gpt-6.1-sol"]);
 const MAX_BODY_BYTES = 6 * 1024 * 1024;
-const MAX_TOKENS_CAP = 8192;
-const DEFAULT_ANTHROPIC_VERSION = "2023-06-01";
+const MAX_OUTPUT_TOKENS_CAP = 8192;
 
 type JsonObject = Record<string, unknown>;
 
+/** Same shape as an OpenAI error body so the app's parser handles proxy and upstream errors alike. */
 function errorResponse(status: number, type: string, message: string): Response {
-  return new Response(JSON.stringify({ type: "error", error: { type, message } }), {
+  return new Response(JSON.stringify({ error: { type, message, code: null, param: null } }), {
     status,
     headers: { "content-type": "application/json" },
   });
@@ -76,12 +76,12 @@ async function readJsonBody(request: Request): Promise<JsonObject | Response> {
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
-    if (url.pathname !== "/v1/messages" || request.method !== "POST") {
+    if (url.pathname !== "/v1/responses" || request.method !== "POST") {
       return errorResponse(404, "not_found_error", "Not found.");
     }
 
-    if (!env.ANTHROPIC_API_KEY) {
-      return errorResponse(500, "api_error", "Proxy is not configured: ANTHROPIC_API_KEY secret is missing.");
+    if (!env.OPENAI_API_KEY) {
+      return errorResponse(500, "api_error", "Proxy is not configured: OPENAI_API_KEY secret is missing.");
     }
 
     // Optional shared app token.
@@ -113,34 +113,36 @@ export default {
       return errorResponse(400, "invalid_request_error", `model must be one of: ${[...ALLOWED_MODELS].join(", ")}.`);
     }
 
-    const maxTokens = body.max_tokens;
-    if (typeof maxTokens !== "number" || !Number.isFinite(maxTokens) || maxTokens < 1) {
-      body.max_tokens = MAX_TOKENS_CAP;
-    } else if (maxTokens > MAX_TOKENS_CAP) {
-      body.max_tokens = MAX_TOKENS_CAP;
+    const maxOutputTokens = body.max_output_tokens;
+    if (typeof maxOutputTokens !== "number" || !Number.isFinite(maxOutputTokens) || maxOutputTokens < 1) {
+      body.max_output_tokens = MAX_OUTPUT_TOKENS_CAP;
+    } else if (maxOutputTokens > MAX_OUTPUT_TOKENS_CAP) {
+      body.max_output_tokens = MAX_OUTPUT_TOKENS_CAP;
     }
 
-    // Fresh header set: client-supplied x-api-key / authorization never reach upstream.
+    // Never let OpenAI retain the photo as a stored response, whatever the client asked for.
+    body.store = false;
+    // Streaming is not something the app does; keep the proxy a simple request/response hop.
+    delete body.stream;
+
+    // Fresh header set: client-supplied authorization / x-api-key never reach upstream.
     const headers = new Headers({
       "content-type": "application/json",
-      "anthropic-version": request.headers.get("anthropic-version") ?? DEFAULT_ANTHROPIC_VERSION,
-      "x-api-key": env.ANTHROPIC_API_KEY,
+      authorization: `Bearer ${env.OPENAI_API_KEY}`,
     });
-    const beta = request.headers.get("anthropic-beta");
-    if (beta) headers.set("anthropic-beta", beta);
 
     let upstream: Response;
     try {
       upstream = await fetch(UPSTREAM, { method: "POST", headers, body: JSON.stringify(body) });
     } catch {
-      return errorResponse(502, "api_error", "Could not reach the Anthropic API.");
+      return errorResponse(502, "api_error", "Could not reach the OpenAI API.");
     }
 
     const out = new Headers({
       "content-type": upstream.headers.get("content-type") ?? "application/json",
     });
-    const requestId = upstream.headers.get("request-id");
-    if (requestId) out.set("request-id", requestId);
+    const requestId = upstream.headers.get("x-request-id");
+    if (requestId) out.set("x-request-id", requestId);
     const retryAfter = upstream.headers.get("retry-after");
     if (retryAfter) out.set("retry-after", retryAfter);
 

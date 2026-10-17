@@ -1,10 +1,10 @@
-name = "morsel-claude-proxy"
+name = "freetrack-ai-proxy"
 main = "src/index.ts"
 compatibility_date = "2025-09-01"
 workers_dev = true
 
 # Secrets (never put these in this file):
-#   npx wrangler secret put ANTHROPIC_API_KEY
+#   npx wrangler secret put OPENAI_API_KEY
 #   npx wrangler secret put APP_TOKEN          # optional shared app token
 
 # Optional per-IP rate limit: 30 requests per 60 s. The Worker runs fine without it;

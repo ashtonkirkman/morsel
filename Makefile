@@ -5,7 +5,7 @@
 #   make test       Build + run FreeTrackTests on the simulator (same flags as CI)
 #   make icon       Regenerate FreeTrack/Resources/.../AppIcon-1024.png
 #   make lint       SwiftLint (native binary if installed, otherwise docker)
-#   make proxy      Typecheck server/claude-proxy
+#   make proxy      Typecheck server/ai-proxy
 #   make api        Typecheck + unit-test server/account-api
 #   make clean      Remove generated project + build products
 
@@ -57,9 +57,9 @@ lint:
 	fi
 
 proxy:
-	@if [ -f server/claude-proxy/package.json ]; then \
-		cd server/claude-proxy && ( [ -f package-lock.json ] && npm ci || npm install ) && npx tsc --noEmit; \
-	else echo "server/claude-proxy not present yet"; fi
+	@if [ -f server/ai-proxy/package.json ]; then \
+		cd server/ai-proxy && ( [ -f package-lock.json ] && npm ci || npm install ) && npx tsc --noEmit; \
+	else echo "server/ai-proxy not present yet"; fi
 
 api:
 	@if [ -f server/account-api/package.json ]; then \

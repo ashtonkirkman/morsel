@@ -36,7 +36,7 @@ final class AppServices {
         account.onSessionChanged = { [weak sync] in sync?.sessionDidChange() }
         self.init(barcode: openFoodFacts,
                   search: openFoodFacts,
-                  vision: ClaudeVisionService(settings: settings),
+                  vision: OpenAIVisionService(settings: settings),
                   account: account,
                   sync: sync)
     }

@@ -1,9 +1,12 @@
 import Foundation
 import Security
 
-/// Minimal Keychain wrapper for secrets (Claude API key, account session). Generic-password class, this app only.
+/// Minimal Keychain wrapper for secrets (vision API keys, proxy token, account session). Generic-password class, this app only.
 struct KeychainStore: Sendable {
     enum Key: String {
+        /// OpenAI API key for direct mode (the default vision backend).
+        case openAIAPIKey = "com.ashtonkirkman.morsel.openAIAPIKey"
+        /// Anthropic key for the alternative `ClaudeVisionService`; no Settings UI since the OpenAI switch.
         case claudeAPIKey = "com.ashtonkirkman.morsel.claudeAPIKey"
         /// Optional shared secret the Cloudflare proxy checks (`x-morsel-token`).
         case proxyToken = "com.ashtonkirkman.morsel.proxyToken"

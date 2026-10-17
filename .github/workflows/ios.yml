@@ -181,29 +181,29 @@ jobs:
             swiftlint lint --reporter github-actions-logging
 
   proxy:
-    name: Proxy typecheck (server/claude-proxy)
+    name: Proxy typecheck (server/ai-proxy)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       # hashFiles() only works after checkout, so the guard lives on the steps rather than the job.
       - name: Setup Node 20
-        if: hashFiles('server/claude-proxy/package.json') != ''
+        if: hashFiles('server/ai-proxy/package.json') != ''
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: server/claude-proxy/package-lock.json
+          cache-dependency-path: server/ai-proxy/package-lock.json
       - name: npm ci + tsc --noEmit
-        if: hashFiles('server/claude-proxy/package.json') != ''
-        working-directory: server/claude-proxy
+        if: hashFiles('server/ai-proxy/package.json') != ''
+        working-directory: server/ai-proxy
         run: |
           set -euo pipefail
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
           npx tsc --noEmit
       - name: Skipped
-        if: hashFiles('server/claude-proxy/package.json') == ''
-        run: echo "server/claude-proxy/package.json not present yet; nothing to typecheck."
+        if: hashFiles('server/ai-proxy/package.json') == ''
+        run: echo "server/ai-proxy/package.json not present yet; nothing to typecheck."
 
   account-api:
     name: Account API tests (server/account-api)

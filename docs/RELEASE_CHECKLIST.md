@@ -42,7 +42,7 @@ Answer the questionnaire in App Store Connect > App Privacy exactly like this:
 | Question | Answer |
 |---|---|
 | Do you collect data from this app? | **Yes** |
-| Photos or Videos | Collected. Purpose: App Functionality. **Not** linked to the user. **Not** used for tracking. (Meal photos are sent to the Anthropic API via the proxy for calorie estimation and are not stored server-side by Free Track.) |
+| Photos or Videos | Collected. Purpose: App Functionality. **Not** linked to the user. **Not** used for tracking. (Meal photos are sent to the OpenAI API via the proxy for calorie estimation, with `store: false`, and are not stored server-side by Free Track.) |
 | Other User Content | Collected. Purpose: App Functionality. Not linked, not tracking. (Optional hint text with a photo; barcodes and search terms sent to Open Food Facts.) |
 | Health & Fitness | **Collected**, purpose App Functionality, **linked** to the user, not tracking. (Only when the user signs in: calorie log, favorites, goals, body stats and body scans sync to the account API in `server/account-api`.) |
 | Contact Info > Email Address, Name | **Collected**, App Functionality, **linked**, not tracking. (From Apple / Google / Facebook at sign-in; Apple may provide a private relay email.) |
@@ -54,7 +54,7 @@ Answer the questionnaire in App Store Connect > App Privacy exactly like this:
       `systemUptime`, disk space or active-keyboard APIs, add the category and reason to the manifest.
 - [ ] Privacy policy URL (mandatory). Publish `AI_AND_DATA.md` content as a page (GitHub Pages is fine)
       and paste the URL into App Store Connect **and** into Settings > About inside the app.
-- [ ] Third parties named in the policy: Anthropic (photo + hint text), Open Food Facts (barcodes, search
+- [ ] Third parties named in the policy: OpenAI (photo + hint text), Open Food Facts (barcodes, search
       text), Cloudflare (hosts the proxy and the account API + D1 database), Apple / Google / Facebook
       (sign-in identity). Link their policies.
 - [ ] Account deletion (guideline 5.1.1(v)): Settings > Account > **Delete account** removes the server
@@ -75,7 +75,7 @@ App Review guideline 5.1.1 / 1.2 and the App Store's AI expectations:
       wrong; check them before relying on them for medical decisions."
 - [ ] Nothing in the UI or metadata claims medical accuracy or offers diagnosis. Free Track is a logger,
       not a medical device; keep it out of the Medical category.
-- [ ] Review Notes: explain the AI feature, that images are sent to Anthropic through a proxy the
+- [ ] Review Notes: explain the AI feature, that images are sent to OpenAI through a proxy the
       developer runs, and give the reviewer a working configuration.
 
 ## 5. Age rating and category
@@ -143,6 +143,6 @@ bundle exec fastlane beta            # or Xcode > Product > Archive > Distribute
 
 ## 10. Post-1.0 hygiene
 
-- [ ] Rotate the Anthropic key in the proxy if it was ever pasted into a chat, log or screenshot.
-- [ ] Set a monthly spend limit on the Anthropic console (see `AI_AND_DATA.md` for per-photo cost).
+- [ ] Rotate the OpenAI key in the proxy if it was ever pasted into a chat, log or screenshot.
+- [ ] Set a monthly budget under Limits on platform.openai.com (see `AI_AND_DATA.md` for per-photo cost).
 - [ ] Watch crash reports in Xcode Organizer for the first week.

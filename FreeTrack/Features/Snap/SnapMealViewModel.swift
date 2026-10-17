@@ -14,7 +14,7 @@ final class SnapMealViewModel {
         case failed(String)
     }
 
-    static let notConfiguredMessage = "Photo logging needs a Claude API key or proxy URL. Add one in Settings."
+    static let notConfiguredMessage = "Photo logging needs a proxy URL or an OpenAI API key. Add one in Settings."
     static let autoLogThreshold = 0.85
 
     // MARK: - State

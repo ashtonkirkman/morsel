@@ -9,7 +9,7 @@ syncs your data to a server you (the developer) run; see [Accounts](#accounts-an
 
 | When you... | What leaves the phone | Goes to | Why |
 |---|---|---|---|
-| Snap or pick a meal photo | The photo, downscaled to at most 1600 px on the long edge and JPEG-compressed (~150-400 KB), plus the optional hint text you type ("two slices", "no dressing") and your answer to the clarifying question | Free Track's Claude proxy (a Cloudflare Worker you deploy), which forwards it to the Anthropic API (`api.anthropic.com`). In "Direct" mode the app calls Anthropic itself using an API key stored in the Keychain. | To get a structured calorie/macro estimate back |
+| Snap or pick a meal photo | The photo, downscaled to at most 1600 px on the long edge and JPEG-compressed (~150-400 KB), plus the optional hint text you type ("two slices", "no dressing") and your answer to the clarifying question | Free Track's AI proxy (a Cloudflare Worker you deploy), which forwards it to the OpenAI API (`api.openai.com`). In "Direct" mode the app calls OpenAI itself using an API key stored in the Keychain. | To get a structured calorie/macro estimate back |
 | Scan a barcode | The barcode digits | [Open Food Facts](https://world.openfoodfacts.org) public API | To look up the product's nutrition facts |
 | Search for a food by name | The search text | Open Food Facts search API (search.openfoodfacts.org; legacy world/us.openfoodfacts.org as fallback) | To find matching products. Built-in whole foods (fruit, vegetables, staples) are matched on the device and never leave it. |
 | Sign in (optional) and stay signed in | See [Accounts](#accounts-and-sync-optional): your identity from the provider (email, name, provider user id) and, from then on, your log entries, favorites, goals, body stats and body scans | Free Track's account API (a Cloudflare Worker + D1 database you deploy, `server/account-api`) | To back up and sync across devices |
@@ -47,7 +47,7 @@ in Cloudflare's infrastructure under your Cloudflare account; see
 |---|---|---|
 | Your phone | Log entries, photos, favorites, settings | Until you delete the entry (deleting an entry deletes its photo) or the app. CSV export is a file you own. |
 | The proxy (your Cloudflare Worker) | Nothing by default. It streams the request through and does not write the image or the reply to storage. Cloudflare keeps standard request logs (IP, timestamp, status) per its own policy. | Cloudflare log retention |
-| Anthropic | API inputs and outputs are subject to Anthropic's [commercial terms](https://www.anthropic.com/legal/commercial-terms) and [privacy policy](https://www.anthropic.com/legal/privacy); by default they are not used to train models. Retention for trust-and-safety purposes is time-limited (see their current policy). | Per Anthropic policy |
+| OpenAI | Every request is sent with `store: false` (the proxy forces it), so the photo is not kept as a stored response. API inputs and outputs are subject to OpenAI's [business terms](https://openai.com/policies/business-terms) and [API data usage policy](https://platform.openai.com/docs/guides/your-data); by default API data is not used to train models. Abuse-monitoring retention is time-limited (see their current policy). | Per OpenAI policy |
 | Open Food Facts | Standard web-server logs. Lookups are anonymous. | Per OFF policy |
 | The account API (your Cloudflare Worker + D1), only if you sign in | Identity (email, name, provider id), session hashes, and the synced documents listed above | Until you delete the account in Settings (everything is removed at once) or sign out of every device and the refresh tokens expire (30 days; documents stay until deletion) |
 
@@ -60,56 +60,54 @@ to the user, not used for tracking, purpose: App Functionality"). The privacy ma
 
 ## Proxy vs. direct mode
 
-The app has two ways to reach Claude (Settings > AI):
+The app has two ways to reach the model (Settings > Photo logging):
 
-- **Proxy (default, recommended).** The Anthropic API key lives only on the Cloudflare Worker in
-  `server/claude-proxy/`. The app sends the request to `<your-proxy>/v1/messages`; the Worker adds the
-  key and forwards to Anthropic. Users never see or hold a key. The Worker can enforce rate limits and
-  a per-day cap so a leaked proxy URL cannot drain your budget.
-- **Direct.** For personal/dev use only: paste an Anthropic API key into the app; it is stored in the
-  iOS Keychain and sent as `x-api-key` straight to `api.anthropic.com`. Never ship a key inside the
+- **Proxy (default, recommended).** The OpenAI API key lives only on the Cloudflare Worker in
+  `server/ai-proxy/`. The app sends the request to `<your-proxy>/v1/responses`; the Worker adds the
+  key and forwards to OpenAI. Users never see or hold a key. The Worker can enforce a shared app token,
+  rate limits and a model allow-list so a leaked proxy URL cannot drain your budget.
+- **Direct.** For personal/dev use only: paste an OpenAI API key into the app; it is stored in the
+  iOS Keychain and sent as a bearer token straight to `api.openai.com`. Never ship a key inside the
   binary.
 
 ### Running the proxy
 
-The proxy is written by the server agent; full instructions are in
-[`../server/claude-proxy/README.md`](../server/claude-proxy/README.md). The shape is:
+Full instructions are in [`../server/ai-proxy/README.md`](../server/ai-proxy/README.md). The shape is:
 
 ```bash
-cd server/claude-proxy
+cd server/ai-proxy
 npm ci
 npx wrangler login
-npx wrangler secret put ANTHROPIC_API_KEY      # paste the key from console.anthropic.com
-npx wrangler deploy                            # prints https://<name>.<account>.workers.dev
+npx wrangler secret put OPENAI_API_KEY        # paste the key from platform.openai.com
+npx wrangler secret put APP_TOKEN            # optional shared token; paste the same value into the app
+npx wrangler deploy                          # prints https://<name>.<account>.workers.dev
 ```
 
-Paste that URL into Free Track > Settings > AI > Proxy URL. Local development: `npx wrangler dev` and use
+Paste that URL into Free Track > Settings > Photo logging > Proxy URL. Local development: `npx wrangler dev` and use
 `http://<your-lan-ip>:8787` from a phone on the same Wi-Fi (the app only accepts `http(s)` URLs).
 
 ## Model and request shape
 
-The app calls the Messages API with model **`claude-opus-5`**, a stable system prompt marked for prompt
-caching, one image block plus one text block, and a JSON-schema structured output so the reply is always
-parseable (`ARCHITECTURE.md` has the exact body). Thinking is on by default for this model and left at
-its default. `max_tokens` is 4096; a typical reply is far shorter.
+The app calls the OpenAI Responses API with model **`gpt-6-luna`**, a stable system prompt in
+`instructions`, one image block plus one text block, reasoning effort `low`, `store: false`, and a strict
+JSON-schema output so the reply is always parseable (`ARCHITECTURE.md` has the exact body).
+`max_output_tokens` is 4096; a typical reply is far shorter.
 
 ## Cost estimate per photo
 
-Anthropic list prices for `claude-opus-5` (first-party API): **$5 per million input tokens, $25 per
-million output tokens**.
+OpenAI list prices for `gpt-6-luna`: **$0.10 per million input tokens, $0.50 per million output tokens**.
 
 | Component | Tokens (typical) | Cost |
 |---|---|---|
-| System prompt + instruction + hint text | ~1,000-2,000 input | $0.005-0.010 |
-| Image (a 1600 px JPEG downscaled by the API; roughly (w x h)/750 tokens, ~1,500 for the sizes we send) | ~1,500 input | ~$0.0075 |
-| Reply: structured JSON with items, macros, confidence, clarifying question | ~600 output (plus any thinking tokens, billed as output) | ~$0.015 |
-| **Total** | | **roughly $0.02-0.03 per photo** |
+| System prompt + instruction + hint text | ~1,000-2,000 input | $0.0001-0.0002 |
+| Image (a 1600 px JPEG at `detail: high`; roughly one token per 32x32 patch, ~1,500-2,000 for the sizes we send) | ~1,500-2,000 input | ~$0.0002 |
+| Reply: structured JSON with items, macros, confidence, clarifying question | ~600 output (plus reasoning tokens at `low` effort, billed as output) | ~$0.0003-0.0005 |
+| **Total** | | **well under a tenth of a cent per photo** |
 
-Rules of thumb: 3 photos a day is about $2-3 a month per user. Prompt caching on the system prompt
-cuts the first row by up to 90% on cache hits; the image is never cached because every photo is
-different. Thinking adds output tokens; if bills run high, set `output_config.effort` to `low` in the
-proxy or app rather than switching models. Set a spend limit in the Anthropic console before handing the
-proxy URL to anyone else.
+Rules of thumb: 3 photos a day is a few cents a month per user. If estimates come back sloppy, raise
+`OpenAIVisionCodec.reasoningEffort` to `medium` or switch the model to `gpt-6.1-sol` ($2 / $10 per million,
+still a few tenths of a cent per photo) in both the app and the Worker allow-list. Set a monthly budget under
+Limits on platform.openai.com before handing the proxy URL to anyone else.
 
 Open Food Facts is free; please respect their [API guidelines](https://openfoodfacts.github.io/openfoodfacts-server/api/)
 (descriptive User-Agent, no bulk scraping).
@@ -120,5 +118,5 @@ Delete the app: all logs, photos and settings go with it. If you signed in, firs
 > **Delete account** so the server copy goes too (deleting the app alone leaves the server copy until
 you delete the account from another device). To delete a single meal, swipe it in Today or History;
 its photo is removed from disk at the same time and, when signed in, the entry is removed from the
-server on the next sync. Photos already sent to Anthropic are governed by their retention policy above;
+server on the next sync. Photos already sent to OpenAI are governed by their retention policy above;
 Free Track cannot recall them.

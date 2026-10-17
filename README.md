@@ -29,7 +29,7 @@ Locally on a Mac: `make screenshots` writes the same set to `./screenshots/`.
 
 ## Features
 
-- **Photo to calories.** Take or pick a meal photo; Claude returns the items, portions, calories and
+- **Photo to calories.** Take or pick a meal photo; OpenAI GPT-6 Luna returns the items, portions, calories and
   macros as structured JSON, with a confidence badge and, when it is unsure, one clarifying question.
   One tap to log.
 - **Barcode scanning** against the [Open Food Facts](https://world.openfoodfacts.org) database, with a
@@ -59,15 +59,15 @@ Locally on a Mac: `make screenshots` writes the same set to `./screenshots/`.
 Details for all three, including running on your own iPhone with a free Apple ID for 7 days at a time:
 **[docs/BUILD.md](docs/BUILD.md)**.
 
-The photo feature needs the Claude proxy (a Cloudflare Worker that holds the Anthropic API key):
-**[server/claude-proxy/README.md](server/claude-proxy/README.md)**. Deploy it, paste its URL into
+The photo feature needs the AI proxy (a Cloudflare Worker that holds the OpenAI API key):
+**[server/ai-proxy/README.md](server/ai-proxy/README.md)**. Deploy it, paste its URL into
 Settings > AI. A "Direct" mode with a key on the device exists for personal use.
 
 ## Documentation
 
 | Doc | What it covers |
 |---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Module layout, the contract every feature view honours, Claude API request shape |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Module layout, the contract every feature view honours, OpenAI API request shape |
 | [docs/BUILD.md](docs/BUILD.md) | Building with / without a Mac, device installs, TestFlight |
 | [docs/DESIGN.md](docs/DESIGN.md) | Colour/type/spacing tokens, components, interaction principles, screen map |
 | [docs/AI_AND_DATA.md](docs/AI_AND_DATA.md) | What leaves the device, retention, running the proxy, cost per photo |
@@ -80,7 +80,7 @@ Settings > AI. A "Direct" mode with a key on the device exists for personal use.
 - Swift 5.9 language mode, SwiftUI, iOS 17+, iPhone only
 - SwiftData for the log; UserDefaults for goals/prefs; Keychain for the optional API key
 - AVFoundation / VisionKit for camera and barcodes, Swift Charts for history
-- Anthropic Messages API (`claude-opus-5`, structured outputs) through a Cloudflare Worker proxy
+- OpenAI Responses API (`gpt-6-luna`, strict JSON-schema output) through a Cloudflare Worker proxy
 - Open Food Facts public API
 - XcodeGen project spec, **no third-party Swift packages**
 - CI: GitHub Actions (`macos-15`, Xcode 16), SwiftLint (advisory), TypeScript typecheck for the proxy
@@ -97,7 +97,7 @@ FreeTrack/
   Features/              Today, History, Body (BodyScan), Settings, Onboarding, Add, Snap, Scan, Search, Account
   Resources/             Assets.xcassets (icon, accent), PrivacyInfo.xcprivacy
 FreeTrackTests/             XCTest unit tests (pure logic)
-server/claude-proxy/     Cloudflare Worker holding the Anthropic key
+server/ai-proxy/         Cloudflare Worker holding the OpenAI key
 server/account-api/      Cloudflare Worker + D1: sign-in (Apple / Google / Facebook) and sync
 docs/                    Build, design, data and release docs
 scripts/                 make_icon.py (app icon), pick_simulator.py (CI helper)
@@ -113,7 +113,7 @@ make generate   # xcodegen
 make test       # simulator build + FreeTrackTests, same flags as CI (Mac only)
 make icon       # regenerate the app icon (python3, Pillow optional)
 make lint       # swiftlint, native or via docker
-make proxy      # typecheck server/claude-proxy
+make proxy      # typecheck server/ai-proxy
 make api        # typecheck + unit-test server/account-api
 ```
 

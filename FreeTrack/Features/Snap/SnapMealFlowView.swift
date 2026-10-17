@@ -1,7 +1,7 @@
 import SwiftData
 import SwiftUI
 
-/// Photo → Claude estimate → review → log. Presented in a sheet by `RootView`; owns its `NavigationStack`.
+/// Photo → model estimate (OpenAI via `OpenAIVisionService`) → review → log. Presented in a sheet by `RootView`; owns its `NavigationStack`.
 @MainActor
 struct SnapMealFlowView: View {
     let onLogged: ([LogEntry]) -> Void

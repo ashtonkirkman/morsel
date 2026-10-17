@@ -48,7 +48,7 @@ struct SettingsView: View {
         }
         .onAppear(perform: refresh)
         .onChange(of: profileDraft) { _, newValue in settings.profile = newValue }
-        .onChange(of: settings.claudeEndpointMode) { _, _ in refreshVisionStatus() }
+        .onChange(of: settings.visionEndpointMode) { _, _ in refreshVisionStatus() }
         .onChange(of: settings.proxyURLString) { _, _ in refreshVisionStatus() }
         .sheet(isPresented: $showProfileSheet) {
             ProfileSetupSheet(profile: $profileDraft) { applyGoals(from: profileDraft) }
@@ -131,19 +131,19 @@ struct SettingsView: View {
         @Bindable var settings = settings
         return SettingsSection(
             title: "Photo logging",
-            footer: "Auto-log skips the review sheet when Claude is at least 85% confident. You can always undo from the toast."
+            footer: "Auto-log skips the review sheet when the model is at least 85% confident. You can always undo from the toast."
         ) {
             HStack {
                 Text("Connect via").font(FreeTrackFont.body).foregroundStyle(Color.mText)
                 Spacer()
-                Picker("Connect via", selection: $settings.claudeEndpointMode) {
-                    ForEach(ClaudeEndpointMode.allCases) { Text($0.title).tag($0) }
+                Picker("Connect via", selection: $settings.visionEndpointMode) {
+                    ForEach(VisionEndpointMode.allCases) { Text($0.title).tag($0) }
                 }
                 .pickerStyle(.menu)
             }
             .padding(.vertical, 2)
             SettingsSeparator()
-            switch settings.claudeEndpointMode {
+            switch settings.visionEndpointMode {
             case .proxy:
                 TextField("https://your-proxy.workers.dev", text: $settings.proxyURLString)
                     .keyboardType(.URL)
@@ -178,12 +178,12 @@ struct SettingsView: View {
 
     private var apiKeyRow: some View {
         HStack(spacing: Spacing.s) {
-            SecureField(keyStored ? "Key saved · enter to replace" : "sk-ant-…", text: $apiKeyDraft)
+            SecureField(keyStored ? "Key saved · enter to replace" : "sk-…", text: $apiKeyDraft)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
                 .font(FreeTrackFont.body)
                 .onSubmit(saveAPIKey)
-                .accessibilityLabel("Claude API key")
+                .accessibilityLabel("OpenAI API key")
             if !apiKeyDraft.isEmpty {
                 Button("Save", action: saveAPIKey)
                     .font(FreeTrackFont.callout.weight(.semibold))
@@ -309,7 +309,7 @@ struct SettingsView: View {
             HStack {
                 Text("Photo estimates").font(FreeTrackFont.body).foregroundStyle(Color.mText)
                 Spacer()
-                Text("Estimates by Claude").font(FreeTrackFont.callout).foregroundStyle(Color.mTextSecondary)
+                Text("OpenAI GPT-6 Luna").font(FreeTrackFont.callout).foregroundStyle(Color.mTextSecondary)
             }
             .padding(.vertical, 6)
         }
@@ -325,7 +325,7 @@ struct SettingsView: View {
 
     private func refresh() {
         if let stored = settings.profile { profileDraft = stored }
-        keyStored = !(KeychainStore.shared.read(.claudeAPIKey) ?? "").isEmpty
+        keyStored = !(KeychainStore.shared.read(.openAIAPIKey) ?? "").isEmpty
         proxyTokenStored = !(KeychainStore.shared.read(.proxyToken) ?? "").isEmpty
         exportURL = nil
         refreshVisionStatus()
@@ -353,7 +353,7 @@ struct SettingsView: View {
     private func saveAPIKey() {
         let trimmed = apiKeyDraft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        if KeychainStore.shared.write(trimmed, for: .claudeAPIKey) {
+        if KeychainStore.shared.write(trimmed, for: .openAIAPIKey) {
             apiKeyDraft = ""
             keyStored = true
             if settings.hapticsEnabled { Haptics.success() }
@@ -378,7 +378,7 @@ struct SettingsView: View {
     }
 
     private func removeAPIKey() {
-        KeychainStore.shared.delete(.claudeAPIKey)
+        KeychainStore.shared.delete(.openAIAPIKey)
         apiKeyDraft = ""
         keyStored = false
         refreshVisionStatus()

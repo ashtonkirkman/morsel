@@ -204,7 +204,7 @@ struct NotConfiguredCard: View {
                     Text("Photo logging isn't set up yet")
                         .font(FreeTrackFont.headline)
                         .foregroundStyle(Color.mText)
-                    Text("Set up in Settings → Photo logging with a Claude API key or a proxy URL. You can still snap a photo to see how it works.")
+                    Text("Set up in Settings → Photo logging with a proxy URL or an OpenAI API key. You can still snap a photo to see how it works.")
                         .font(FreeTrackFont.caption)
                         .foregroundStyle(Color.mTextSecondary)
                 }

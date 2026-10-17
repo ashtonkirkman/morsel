@@ -47,7 +47,7 @@ FreeTrack/Features/BodyScan BodyView (tab), BodyScanFlowView + BodyScanFlowModel
                         self-timer), BodyScanIntroSheet, ProgressPhotosCard (timeline strip), ProgressPhotoImportView
                         (multi-pick + dates/angles), ProgressPhotoCompareView (before/after, slider), ProgressPhotoDetailView
 FreeTrackTests             XCTest unit tests (pure logic only: parsers, mappers, math). No UI tests.
-server/claude-proxy     Cloudflare Worker that holds the Anthropic key.
+server/ai-proxy         Cloudflare Worker that holds the OpenAI key and forwards to the Responses API.
 server/account-api      Cloudflare Worker + D1: accounts (Apple/Google/Facebook) and document sync.
 ```
 
@@ -79,7 +79,7 @@ then call `onLogged(entries)`. Cancel = `onLogged([])`. The host dismisses the s
 
 Concrete services `AppServices` expects (exact names/inits):
 - `OpenFoodFactsClient()` conforming to **both** `BarcodeLookupService` and `FoodSearchService` (barcode agent).
-- `ClaudeVisionService(settings: AppSettings)` conforming to `MealVisionService` (vision agent).
+- `OpenAIVisionService(settings: AppSettings)` conforming to `MealVisionService` (vision agent). `ClaudeVisionService` stays in the tree as an alternative backend and shares the prompt/schema/parsing via `ClaudeVisionCodec`.
 
 Shared serving editor: the search agent owns `ServingEditorView(food: FoodItem, initialQuantity: Double,
 mealType: Binding<MealType>, onConfirm: (FoodItem, Double) -> Void)`; barcode + vision flows may use it or
@@ -93,20 +93,25 @@ their own inline controls. Keep it in `Features/Search/ServingEditorView.swift`.
 - Dark mode must work (all colors are dynamic already). Dynamic Type: use system text styles.
 - Accessibility labels on icon-only buttons.
 
-## Claude API (vision agent) — raw HTTPS, no SDK exists for Swift
-POST `https://api.anthropic.com/v1/messages` (direct mode) or `settings.proxyURL` + `/v1/messages` (proxy mode).
-Headers: `content-type: application/json`, `anthropic-version: 2023-06-01`, and in direct mode `x-api-key: <key>`.
+## OpenAI API (vision agent) — raw HTTPS, no SDK
+POST `https://api.openai.com/v1/responses` (direct mode) or `settings.proxyURL` + `/v1/responses` (proxy mode).
+Headers: `content-type: application/json`, and in direct mode `authorization: Bearer <key>`. Proxy mode sends the optional
+shared token as `x-morsel-token`.
 Body:
 ```json
-{ "model": "claude-opus-5", "max_tokens": 4096,
-  "system": "<stable system prompt, cache_control on it>",
-  "messages": [{ "role": "user", "content": [
-      { "type": "image", "source": { "type": "base64", "media_type": "image/jpeg", "data": "<b64>" } },
-      { "type": "text", "text": "<instruction + optional user hint>" } ] }],
-  "output_config": { "format": { "type": "json_schema", "schema": { ...additionalProperties:false, required: [...] } } } }
+{ "model": "gpt-6-luna", "max_output_tokens": 4096, "store": false,
+  "instructions": "<stable system prompt>",
+  "reasoning": { "effort": "low" },
+  "input": [{ "role": "user", "content": [
+      { "type": "input_image", "image_url": "data:image/jpeg;base64,<b64>", "detail": "high" },
+      { "type": "input_text", "text": "<instruction + optional user hint>" } ] }],
+  "text": { "format": { "type": "json_schema", "name": "meal_estimate", "strict": true, "schema": { ...additionalProperties:false, required: [...] } } } }
 ```
-Response: `content` is an array of blocks; take the first block with `"type":"text"` and JSON-decode its `text`
-into the schema. Check `stop_reason`: `"max_tokens"` → incomplete, `"refusal"` → surface a friendly error.
-Structured-output schema rules: no `minimum/maximum/minLength`, every object has `additionalProperties:false` and
-`required` listing all properties. Thinking is on by default for this model; do not send a `thinking` field.
+Response: `output` is an array of items; skip `reasoning` items, take the first `message` item, and inside it the first
+`output_text` part; JSON-decode its `text` into the schema. A `refusal` part → friendly error. Check `status`:
+`"incomplete"` with `incomplete_details.reason == "max_output_tokens"` → incomplete; `"failed"` → surface `error.message`.
+Strict-schema rules: no `minimum/maximum/minLength`, every object has `additionalProperties:false` and `required` listing
+all properties; nullable fields use `anyOf` with `{"type":"null"}`.
 Map HTTP 401 → `.unauthorized`, 429 → `.rateLimited`, 5xx → `.server`, URLError → `.network`.
+The prompt, schema and estimate mapping live in `ClaudeVisionCodec` and are reused by `OpenAIVisionCodec`; the Claude
+Messages-API envelope is kept there too so the two backends can be A/B tested on the same photo.

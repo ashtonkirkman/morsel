@@ -19,8 +19,8 @@ and the phone must be plugged into the PC the first time.
    code; it signs the IPA with a free development certificate and installs it.
 4. On the phone: Settings > Privacy & Security > Developer Mode > on (reboot), then
    Settings > General > VPN & Device Management > trust your Apple ID.
-5. Open Free Track. For the photo feature, go to Settings > Claude and either paste an
-   Anthropic API key (direct mode) or point it at your deployed proxy.
+5. Open Free Track. For the photo feature, go to Settings > Photo logging and either point it at
+   your deployed proxy (recommended) or paste an OpenAI API key (direct mode).
 
 Re-sign every 7 days by repeating step 3. Sideloadly can do this over Wi-Fi after
 the first USB install if you enable it in its settings.

@@ -1,9 +1,9 @@
 {
-  "name": "morsel-claude-proxy",
+  "name": "freetrack-ai-proxy",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Cloudflare Worker that forwards Free Track's Claude requests and holds the Anthropic API key.",
+  "description": "Cloudflare Worker that forwards Free Track's photo-estimate requests to OpenAI and holds the API key.",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",

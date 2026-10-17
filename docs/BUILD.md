@@ -65,7 +65,7 @@ This is the situation today. Every push and pull request to `main` runs
 
 That job is **the only compile check we have**. Work in small PRs so a red build points at one change.
 Two side jobs run on Ubuntu: SwiftLint (advisory, never fails the build) and a TypeScript typecheck of
-`server/claude-proxy` (skipped until that folder has a `package.json`).
+`server/ai-proxy` (skipped until that folder has a `package.json`).
 
 Tips for iterating without a Mac:
 

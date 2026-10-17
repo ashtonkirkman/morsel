@@ -1,6 +1,6 @@
 import Foundation
 
-/// `MealVisionService` over the Claude Messages API using plain `URLSession`
+/// Alternative `MealVisionService` over the Claude Messages API (not wired by default; see `OpenAIVisionService`)
 /// (there is no official Anthropic Swift SDK). Direct mode sends the Keychain key;
 /// proxy mode talks to the Cloudflare Worker in `server/claude-proxy`, which holds the key.
 final class ClaudeVisionService: MealVisionService, @unchecked Sendable {
@@ -36,12 +36,12 @@ final class ClaudeVisionService: MealVisionService, @unchecked Sendable {
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.setValue(ClaudeVisionCodec.anthropicVersion, forHTTPHeaderField: "anthropic-version")
 
-        if settings.claudeEndpointMode == .direct {
+        if settings.visionEndpointMode == .direct {
             let key = (KeychainStore.shared.read(.claudeAPIKey) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             guard !key.isEmpty else { throw ServiceError.noAPIKey }
             request.setValue(key, forHTTPHeaderField: "x-api-key")
         }
-        if settings.claudeEndpointMode == .proxy {
+        if settings.visionEndpointMode == .proxy {
             let token = (KeychainStore.shared.read(.proxyToken) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             if !token.isEmpty { request.setValue(token, forHTTPHeaderField: "x-morsel-token") }
         }
@@ -51,7 +51,7 @@ final class ClaudeVisionService: MealVisionService, @unchecked Sendable {
     }
 
     private func endpoint() throws -> URL {
-        switch settings.claudeEndpointMode {
+        switch settings.visionEndpointMode {
         case .direct:
             guard let url = URL(string: ClaudeVisionCodec.directEndpointString) else {
                 throw ServiceError.network("Invalid API endpoint.")

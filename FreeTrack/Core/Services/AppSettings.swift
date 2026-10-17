@@ -1,11 +1,11 @@
 import Foundation
 import Observation
 
-/// How the app reaches Claude for photo estimates.
-enum ClaudeEndpointMode: String, CaseIterable, Identifiable, Codable {
+/// How the app reaches the vision model (OpenAI) for photo estimates.
+enum VisionEndpointMode: String, CaseIterable, Identifiable, Codable {
     /// Through the bundled Cloudflare Worker proxy (recommended; the key never leaves the server).
     case proxy
-    /// Directly against api.anthropic.com with a key stored in the Keychain (dev / personal use).
+    /// Directly against api.openai.com with a key stored in the Keychain (dev / personal use).
     case direct
 
     var id: String { rawValue }
@@ -36,7 +36,7 @@ final class AppSettings {
         carbsGoal = defaults.object(forKey: Keys.carbsGoal) as? Double ?? 225
         fatGoal = defaults.object(forKey: Keys.fatGoal) as? Double ?? 65
         unitSystem = UnitSystem(rawValue: defaults.string(forKey: Keys.unitSystem) ?? "") ?? .imperial
-        claudeEndpointMode = ClaudeEndpointMode(rawValue: defaults.string(forKey: Keys.claudeEndpointMode) ?? "") ?? .proxy
+        visionEndpointMode = VisionEndpointMode(rawValue: defaults.string(forKey: Keys.visionEndpointMode) ?? "") ?? .proxy
         proxyURLString = defaults.string(forKey: Keys.proxyURL) ?? ""
         hapticsEnabled = defaults.object(forKey: Keys.hapticsEnabled) as? Bool ?? true
         autoLogHighConfidence = defaults.object(forKey: Keys.autoLogHighConfidence) as? Bool ?? false
@@ -56,7 +56,7 @@ final class AppSettings {
     var carbsGoal: Double { didSet { defaults.set(carbsGoal, forKey: Keys.carbsGoal); touchSettings() } }
     var fatGoal: Double { didSet { defaults.set(fatGoal, forKey: Keys.fatGoal); touchSettings() } }
     var unitSystem: UnitSystem { didSet { defaults.set(unitSystem.rawValue, forKey: Keys.unitSystem); touchSettings() } }
-    var claudeEndpointMode: ClaudeEndpointMode { didSet { defaults.set(claudeEndpointMode.rawValue, forKey: Keys.claudeEndpointMode) } }
+    var visionEndpointMode: VisionEndpointMode { didSet { defaults.set(visionEndpointMode.rawValue, forKey: Keys.visionEndpointMode) } }
     var proxyURLString: String { didSet { defaults.set(proxyURLString, forKey: Keys.proxyURL) } }
     var hapticsEnabled: Bool { didSet { defaults.set(hapticsEnabled, forKey: Keys.hapticsEnabled) } }
     /// When true, photo estimates with confidence ≥ 0.85 are logged without the review sheet.
@@ -118,11 +118,11 @@ final class AppSettings {
         NutritionFacts(calories: calorieGoal, protein: proteinGoal, carbs: carbsGoal, fat: fatGoal)
     }
 
-    /// True when photo logging can actually reach Claude with the current configuration.
+    /// True when photo logging can actually reach the vision model with the current configuration.
     var isVisionConfigured: Bool {
-        switch claudeEndpointMode {
+        switch visionEndpointMode {
         case .proxy: return proxyURL != nil
-        case .direct: return !(KeychainStore.shared.read(.claudeAPIKey) ?? "").isEmpty
+        case .direct: return !(KeychainStore.shared.read(.openAIAPIKey) ?? "").isEmpty
         }
     }
 
@@ -133,7 +133,7 @@ final class AppSettings {
         static let carbsGoal = "carbsGoal"
         static let fatGoal = "fatGoal"
         static let unitSystem = "unitSystem"
-        static let claudeEndpointMode = "claudeEndpointMode"
+        static let visionEndpointMode = "claudeEndpointMode" // stored name predates the OpenAI switch; keep for existing installs
         static let proxyURL = "proxyURL"
         static let hapticsEnabled = "hapticsEnabled"
         static let autoLogHighConfidence = "autoLogHighConfidence"

@@ -44,7 +44,7 @@ enum ServiceError: LocalizedError, Equatable {
         case .unauthorized: return "The API key was rejected."
         case .rateLimited: return "Too many requests right now. Try again in a moment."
         case .server(let status, let message): return "Server error \(status). \(message)"
-        case .noAPIKey: return "Add a Claude API key or proxy URL in Settings to use photo logging."
+        case .noAPIKey: return "Add a proxy URL or an OpenAI API key in Settings to use photo logging."
         case .cancelled: return "Cancelled."
         case .invalidImage: return "That image couldn't be read."
         }
